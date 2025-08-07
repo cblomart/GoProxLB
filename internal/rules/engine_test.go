@@ -268,7 +268,7 @@ func TestValidatePlacement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := engine.ValidatePlacement(tt.vm, tt.targetNode)
+			err := engine.ValidatePlacement(&tt.vm, tt.targetNode)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidatePlacement() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -302,14 +302,14 @@ func TestGetValidTargetNodes(t *testing.T) {
 	availableNodes := []string{"node1", "node2", "node3"}
 
 	// Test pinned VM
-	validNodes := engine.GetValidTargetNodes(vms[0], availableNodes)
+	validNodes := engine.GetValidTargetNodes(&vms[0], availableNodes)
 	expected := []string{"node1", "node2"}
 	if len(validNodes) != len(expected) {
 		t.Errorf("Expected %d valid nodes, got %d", len(expected), len(validNodes))
 	}
 
 	// Test ignored VM
-	validNodes = engine.GetValidTargetNodes(vms[1], availableNodes)
+	validNodes = engine.GetValidTargetNodes(&vms[1], availableNodes)
 	if len(validNodes) != 0 {
 		t.Errorf("Expected 0 valid nodes for ignored VM, got %d", len(validNodes))
 	}
