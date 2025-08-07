@@ -323,7 +323,9 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+**Note**: This is a Go implementation of the original [ProxLB](https://github.com/gyptazy/ProxLB) project, which is also licensed under GPL-3.0.
 
 ## 🔒 Security Note
 
