@@ -1,0 +1,26 @@
+# GoProxLB Simple Advanced Configuration
+# Minimal configuration for advanced balancing - "Trust must be earned"
+# For local Proxmox deployment, you can leave Proxmox and cluster sections empty!
+
+# Proxmox configuration (optional for localhost)
+# proxmox:
+#   host: "https://localhost:8006"  # Default anyway
+#   insecure: true                  # Default anyway for localhost
+
+# Cluster configuration (optional - auto-detected)
+# cluster:
+#   name: "pve"  # Auto-detected from Proxmox API
+
+# Load balancing - Advanced with low aggressiveness (default)
+balancing:
+  balancer_type: "advanced"  # Advanced balancing
+  aggressiveness: "low"      # Conservative by default (4h cooldown)
+  # Everything else uses sensible defaults
+
+# Raft configuration (single-node)
+raft:
+  enabled: false
+
+# Logging
+logging:
+  level: "info"

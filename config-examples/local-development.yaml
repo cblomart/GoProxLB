@@ -1,0 +1,26 @@
+# GoProxLB Local Development Configuration
+# Minimal configuration for local development - "Trust must be earned"
+
+# Proxmox configuration (local development)
+proxmox:
+  host: "https://localhost:8006"
+  insecure: true  # Allow HTTP for local development
+
+# Cluster configuration
+cluster:
+  name: "pve"
+
+# Load balancing configuration (advanced with low aggressiveness)
+balancing:
+  balancer_type: "advanced"  # Advanced balancing
+  aggressiveness: "low"      # Conservative by default (4h cooldown)
+  # Everything else uses sensible defaults
+
+# Raft configuration (single-node for development)
+raft:
+  enabled: false  # Single-node mode
+
+# Logging configuration (verbose for development)
+logging:
+  level: "debug"
+  format: "text"

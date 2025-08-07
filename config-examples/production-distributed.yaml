@@ -1,0 +1,60 @@
+# GoProxLB Production Distributed Configuration
+# High-availability configuration for production environments
+
+# Proxmox configuration (production)
+proxmox:
+  host: "https://proxmox-cluster.example.com:8006"
+  username: "goproxlb@pve"
+  password: "your-secure-password"
+  # Or use token authentication:
+  # token: "your-api-token"
+  insecure: false
+
+# Cluster configuration
+cluster:
+  name: "production-cluster"
+  maintenance_nodes: ["maintenance-node1", "maintenance-node2"]
+
+# Load balancing configuration (production optimized)
+balancing:
+  enabled: true
+  interval: "5m"
+  balancer_type: "advanced"
+  aggressiveness: "medium"
+  cooldown: "2h"
+  
+  # Resource thresholds
+  thresholds:
+    cpu: 80
+    memory: 85
+    storage: 90
+  
+  # Resource weights
+  weights:
+    cpu: 1.0
+    memory: 1.0
+    storage: 0.5
+  
+  # Advanced features
+  load_profiles:
+    enabled: true
+    window: "24h"
+  
+  capacity:
+    enabled: true
+    forecast: "168h"  # 7 days
+
+# Raft configuration (distributed mode)
+raft:
+  enabled: true
+  node_id: ""  # Auto-detected
+  address: "0.0.0.0"
+  data_dir: "/var/lib/goproxlb"
+  auto_discover: true
+  port: 7946
+  peers: []  # Auto-discovered
+
+# Logging configuration (production)
+logging:
+  level: "info"
+  format: "json"  # JSON for log aggregation

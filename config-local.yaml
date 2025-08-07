@@ -1,0 +1,50 @@
+# GoProxLB Configuration File
+# Simple configuration with sensible defaults - "Trust must be earned"
+
+# Proxmox configuration
+proxmox:
+  host: "https://localhost:8006"  # Default: localhost for local deployment
+  username: ""                    # Leave empty for local root access
+  password: ""                    # Leave empty for local root access
+  # Or use token authentication:
+  # token: "your-api-token"
+  insecure: true                  # Allow HTTP for local access
+
+# Cluster configuration
+cluster:
+  name: "pve"                     # Default cluster name
+  maintenance_nodes: []           # Nodes in maintenance mode
+
+# Load balancing configuration - SIMPLIFIED
+balancing:
+  interval: "5m"                  # Balancing interval (5 minutes)
+  balancer_type: "advanced"       # Advanced balancing (recommended)
+  aggressiveness: "low"           # LOW by default - trust must be earned
+  # Cooldown is automatically set based on aggressiveness:
+  # - low: 4h cooldown (very conservative)
+  # - medium: 2h cooldown (balanced)
+  # - high: 30m cooldown (aggressive)
+  
+  # Advanced features (enabled by default)
+  load_profiles:
+    enabled: true                 # Enable load profiling
+    window: "24h"                 # Analysis window
+  
+  capacity:
+    enabled: true                 # Enable capacity planning
+    forecast: "168h"              # 7-day forecast
+
+# Raft leader election configuration (for distributed mode)
+raft:
+  enabled: false                  # Set to true for distributed mode
+  node_id: ""                     # Auto-detected if empty
+  address: "0.0.0.0"             # Listen on all interfaces
+  data_dir: "/var/lib/goproxlb"   # Raft data directory
+  auto_discover: true             # Auto-discover peers from Proxmox cluster
+  port: 7946                      # Standard Serf port for Raft communication
+  peers: []                       # Auto-discovered if auto_discover is true
+
+# Logging configuration
+logging:
+  level: "info"                   # "debug", "info", "warn", "error"
+  format: "text"                  # "text" or "json"

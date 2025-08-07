@@ -1,0 +1,47 @@
+# GoProxLB Threshold Balancer Configuration
+# Simple threshold-based load balancing
+
+# Proxmox configuration
+proxmox:
+  host: "https://localhost:8006"
+  insecure: true
+
+# Cluster configuration
+cluster:
+  name: "pve"
+
+# Load balancing configuration (threshold-based)
+balancing:
+  enabled: true
+  interval: "3m"  # More frequent checks for threshold-based
+  balancer_type: "threshold"  # Use threshold balancer
+  aggressiveness: "medium"
+  cooldown: "1h"
+  
+  # Resource thresholds (critical for threshold balancer)
+  thresholds:
+    cpu: 75      # Lower threshold for more aggressive balancing
+    memory: 80   # Lower threshold for more aggressive balancing
+    storage: 85  # Lower threshold for more aggressive balancing
+  
+  # Weights are not used in threshold mode
+  weights:
+    cpu: 1.0
+    memory: 1.0
+    storage: 0.5
+  
+  # Advanced features (optional for threshold mode)
+  load_profiles:
+    enabled: false  # Not needed for threshold mode
+  
+  capacity:
+    enabled: false  # Not needed for threshold mode
+
+# Raft configuration (single-node)
+raft:
+  enabled: false
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "text"

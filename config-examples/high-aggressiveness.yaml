@@ -1,0 +1,49 @@
+# GoProxLB High Aggressiveness Configuration
+# Optimized for environments where resource optimization is critical
+
+# Proxmox configuration
+proxmox:
+  host: "https://localhost:8006"
+  insecure: true
+
+# Cluster configuration
+cluster:
+  name: "pve"
+
+# Load balancing configuration (high aggressiveness)
+balancing:
+  enabled: true
+  interval: "2m"  # Very frequent checks
+  balancer_type: "advanced"
+  aggressiveness: "high"  # High aggressiveness
+  cooldown: "30m"  # Shorter cooldown for more frequent migrations
+  
+  # Resource thresholds
+  thresholds:
+    cpu: 70      # Lower thresholds for more aggressive balancing
+    memory: 75   # Lower thresholds for more aggressive balancing
+    storage: 80  # Lower thresholds for more aggressive balancing
+  
+  # Resource weights (emphasize CPU and memory)
+  weights:
+    cpu: 1.5      # Higher weight for CPU
+    memory: 1.5   # Higher weight for memory
+    storage: 0.3  # Lower weight for storage
+  
+  # Advanced features (all enabled for maximum optimization)
+  load_profiles:
+    enabled: true
+    window: "12h"  # Shorter window for more responsive balancing
+  
+  capacity:
+    enabled: true
+    forecast: "72h"  # 3-day forecast for quicker adaptation
+
+# Raft configuration (single-node for simplicity)
+raft:
+  enabled: false
+
+# Logging configuration (verbose for monitoring)
+logging:
+  level: "debug"  # More verbose logging
+  format: "text"
