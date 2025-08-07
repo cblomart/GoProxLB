@@ -18,7 +18,7 @@ func writeJSON(w http.ResponseWriter, data interface{}) {
 }
 
 // Mock server for testing
-func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
+func setupMockServer() (*httptest.Server, *config.ProxmoxConfig) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Mock authentication check
 		if r.URL.Path == "/api2/json/access/ticket" {
@@ -295,7 +295,7 @@ func TestNewClientLocalAccess(t *testing.T) {
 }
 
 func TestGetClusterInfo(t *testing.T) {
-	server, cfg := setupMockServer(t)
+	server, cfg := setupMockServer()
 	defer server.Close()
 
 	client := NewClient(cfg)
@@ -310,7 +310,7 @@ func TestGetClusterInfo(t *testing.T) {
 }
 
 func TestGetNodes(t *testing.T) {
-	server, cfg := setupMockServer(t)
+	server, cfg := setupMockServer()
 	defer server.Close()
 
 	client := NewClient(cfg)
@@ -356,7 +356,7 @@ func TestGetNodes(t *testing.T) {
 }
 
 func TestGetNodesWithMaintenance(t *testing.T) {
-	server, cfg := setupMockServer(t)
+	server, cfg := setupMockServer()
 	defer server.Close()
 
 	client := NewClient(cfg)
@@ -374,7 +374,7 @@ func TestGetNodesWithMaintenance(t *testing.T) {
 }
 
 func TestMigrateVM(t *testing.T) {
-	server, cfg := setupMockServer(t)
+	server, cfg := setupMockServer()
 	defer server.Close()
 
 	client := NewClient(cfg)

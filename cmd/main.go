@@ -35,7 +35,6 @@ var (
 	csvOutput    string
 	force        bool
 	balancerType string
-	serviceName  = "goproxlb"
 	serviceUser  = "goproxlb"
 	serviceGroup = "goproxlb"
 )

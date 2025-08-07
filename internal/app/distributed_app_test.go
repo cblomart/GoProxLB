@@ -15,7 +15,6 @@ import (
 type MockDistributedClient struct {
 	clusterInfo *models.Cluster
 	nodes       []models.Node
-	vms         []models.VM
 	err         error
 }
 

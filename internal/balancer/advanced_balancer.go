@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	vmStatusRunning         = "running"
-	defaultTimeframe        = "day"
+	vmStatusRunning          = "running"
+	defaultTimeframe         = "day"
 	criticalityLevelCritical = "Critical"
 )
 
@@ -162,33 +162,13 @@ func (b *AdvancedBalancer) updateLoadProfiles(nodes []models.Node) {
 
 // analyzeLoadProfile analyzes the load profile of a VM using historical data
 func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM, node *models.Node) *models.LoadProfile {
-	// Get historical data for the VM
-	timeframe := defaultTimeframe // Default to 24 hours
-	if window, err := b.config.GetLoadProfilesWindow(); err == nil {
-		if window >= 24*time.Hour {
-			timeframe = defaultTimeframe
-		} else if window >= time.Hour {
-			timeframe = "hour"
-		}
-	}
-
-	historicalData, err := b.client.GetVMHistoricalData(node.Name, vm.ID, vm.Type, timeframe)
-	if err != nil {
-		// Fallback to simplified analysis if historical data is not available
-		return b.analyzeLoadProfileSimplified(vm, node)
-	}
-
-	// Analyze CPU pattern from historical data
-	cpuPattern := b.analyzeCPUPatternFromHistory(historicalData)
-
-	// Analyze memory pattern from historical data
-	memoryPattern := b.analyzeMemoryPatternFromHistory(historicalData)
-
-	// Analyze storage pattern from historical data
-	storagePattern := b.analyzeStoragePatternFromHistory(historicalData)
+	// Use simplified analysis
+	cpuPattern := b.analyzeCPUPatternFromHistory()
+	memoryPattern := b.analyzeMemoryPatternFromHistory()
+	storagePattern := b.analyzeStoragePatternFromHistory()
 
 	// Determine priority based on tags and usage patterns
-	priority := b.determinePriority(vm, cpuPattern, memoryPattern)
+	priority := b.determinePriority(vm, cpuPattern)
 
 	// Determine criticality
 	criticality := b.determineCriticality(vm, priority)
@@ -203,7 +183,7 @@ func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM, node *models.Node) 
 }
 
 // analyzeLoadProfileSimplified provides simplified analysis when historical data is not available
-func (b *AdvancedBalancer) analyzeLoadProfileSimplified(vm *models.VM, node *models.Node) *models.LoadProfile {
+func (b *AdvancedBalancer) analyzeLoadProfileSimplified(vm *models.VM) *models.LoadProfile {
 	// Determine CPU pattern
 	cpuPattern := b.analyzeCPUPattern(vm)
 
@@ -211,10 +191,10 @@ func (b *AdvancedBalancer) analyzeLoadProfileSimplified(vm *models.VM, node *mod
 	memoryPattern := b.analyzeMemoryPattern(vm)
 
 	// Determine storage pattern
-	storagePattern := b.analyzeStoragePattern(vm)
+	storagePattern := b.analyzeStoragePattern()
 
 	// Determine priority based on tags and usage
-	priority := b.determinePriority(vm, cpuPattern, memoryPattern)
+	priority := b.determinePriority(vm, cpuPattern)
 
 	// Determine criticality
 	criticality := b.determineCriticality(vm, priority)
@@ -250,10 +230,8 @@ func (b *AdvancedBalancer) analyzeCPUPattern(vm *models.VM) models.CPUPattern {
 }
 
 // analyzeCPUPatternFromHistory analyzes CPU usage patterns from historical data
-func (b *AdvancedBalancer) analyzeCPUPatternFromHistory(historicalData []proxmox.HistoricalMetric) models.CPUPattern {
-	// This is a simplified analysis - in reality, you'd analyze historical data
-	// For now, we'll just return a placeholder or a basic pattern
-	// A more sophisticated analysis would involve statistical analysis of the data
+func (b *AdvancedBalancer) analyzeCPUPatternFromHistory() models.CPUPattern {
+	// Simplified analysis without historical data
 
 	// Example: If historical data shows a sustained high CPU usage, return sustained
 	// For simplicity, we'll return a placeholder
@@ -274,8 +252,8 @@ func (b *AdvancedBalancer) analyzeMemoryPattern(vm *models.VM) models.MemoryPatt
 }
 
 // analyzeMemoryPatternFromHistory analyzes memory usage patterns from historical data
-func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory(historicalData []proxmox.HistoricalMetric) models.MemoryPattern {
-	// This is a simplified analysis - in reality, you'd analyze historical data
+func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory() models.MemoryPattern {
+	// Simplified analysis without historical data - in reality, you'd analyze historical data
 	// For now, we'll just return a placeholder or a basic pattern
 	// A more sophisticated analysis would involve statistical analysis of the data
 
@@ -288,7 +266,7 @@ func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory(historicalData []prox
 }
 
 // analyzeStoragePattern analyzes storage usage patterns
-func (b *AdvancedBalancer) analyzeStoragePattern(vm *models.VM) models.StoragePattern {
+func (b *AdvancedBalancer) analyzeStoragePattern() models.StoragePattern {
 	// Simplified analysis
 	return models.StoragePattern{
 		Type:         "mixed",
@@ -300,8 +278,8 @@ func (b *AdvancedBalancer) analyzeStoragePattern(vm *models.VM) models.StoragePa
 }
 
 // analyzeStoragePatternFromHistory analyzes storage usage patterns from historical data
-func (b *AdvancedBalancer) analyzeStoragePatternFromHistory(historicalData []proxmox.HistoricalMetric) models.StoragePattern {
-	// This is a simplified analysis - in reality, you'd analyze historical data
+func (b *AdvancedBalancer) analyzeStoragePatternFromHistory() models.StoragePattern {
+	// Simplified analysis without historical data
 	// For now, we'll just return a placeholder or a basic pattern
 	// A more sophisticated analysis would involve statistical analysis of the data
 
@@ -315,7 +293,7 @@ func (b *AdvancedBalancer) analyzeStoragePatternFromHistory(historicalData []pro
 }
 
 // determinePriority determines VM priority
-func (b *AdvancedBalancer) determinePriority(vm *models.VM, cpu models.CPUPattern, memory models.MemoryPattern) models.Priority {
+func (b *AdvancedBalancer) determinePriority(vm *models.VM, cpu models.CPUPattern) models.Priority {
 	// Check for priority tags
 	for _, tag := range vm.Tags {
 		switch tag {
@@ -752,7 +730,7 @@ func (b *AdvancedBalancer) findOptimalMigrations(nodes []models.Node, nodeScores
 			}
 
 			// Calculate resource gain
-			gain := b.calculateResourceGain(vm, overloadedNode.Name, targetNode, nodeScores)
+			gain := b.calculateResourceGain(overloadedNode.Name, targetNode, nodeScores)
 
 			// Check if gain meets minimum improvement threshold
 			if gain < aggConfig.MinImprovement {
@@ -839,7 +817,7 @@ func (b *AdvancedBalancer) findBestTargetNode(vm *models.VM, nodeScores []models
 }
 
 // calculateResourceGain calculates resource gain from migration (optimized for performance)
-func (b *AdvancedBalancer) calculateResourceGain(vm *models.VM, sourceNode, targetNode string, nodeScores []models.NodeScore) float64 {
+func (b *AdvancedBalancer) calculateResourceGain(sourceNode, targetNode string, nodeScores []models.NodeScore) float64 {
 	// Use map for O(1) lookup instead of O(n) search
 	nodeScoreMap := make(map[string]float64, len(nodeScores))
 	for _, score := range nodeScores {

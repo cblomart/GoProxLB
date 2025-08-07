@@ -33,16 +33,14 @@ func (e *Engine) ProcessVMs(vms []models.VM) error {
 	e.ignoredVMs = make(map[int]*models.IgnoredVM)
 
 	for _, vm := range vms {
-		if err := e.processVM(&vm); err != nil {
-			return fmt.Errorf("failed to process VM %s: %w", vm.Name, err)
-		}
+		e.processVM(&vm)
 	}
 
 	return nil
 }
 
 // processVM processes a single VM and extracts its rules
-func (e *Engine) processVM(vm *models.VM) error {
+func (e *Engine) processVM(vm *models.VM) {
 	for _, tag := range vm.Tags {
 		tag = strings.TrimSpace(tag)
 
@@ -57,8 +55,6 @@ func (e *Engine) processVM(vm *models.VM) error {
 			e.addIgnoreRule(vm, tag)
 		}
 	}
-
-	return nil
 }
 
 // addAffinityRule adds a VM to an affinity group
