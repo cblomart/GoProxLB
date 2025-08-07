@@ -19,7 +19,7 @@ linters:
     - goconst
     - gocritic
     - godot
-    - goheader
+    # - goheader  # Disabled due to configuration issues
     - gomnd
     - goprintffuncname
     - gosec
@@ -63,11 +63,7 @@ linters-settings:
       - ifElseChain
       - octalLiteral
       - whyNoLint
-  goheader:
-    template-path: ""
-    values:
-      const: GoProxLB
-      pattern: GoProxLB
+  # goheader configuration removed due to parsing issues
   gosec:
     excludes:
       - G404 # Use of weak random number generator

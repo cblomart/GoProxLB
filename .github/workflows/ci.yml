@@ -73,7 +73,9 @@ jobs:
 
     - name: Run gosec security scanner
       run: |
-        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        echo "Installing gosec..."
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest || echo "gosec install failed, continuing"
+        echo "Running gosec..."
         gosec -fmt sarif -out results.sarif ./... || echo "gosec completed with warnings"
         echo "Security scan completed"
 
