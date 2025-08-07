@@ -99,11 +99,13 @@ internal/      # Private application code
 - **Memory Optimizations**: Pre-allocated slices, efficient data structures
 - **Migration Limits**: Configurable limits to prevent excessive operations
 
-### Performance Impact
-- **20-40% reduction** in CPU usage for large clusters
-- **30-50% reduction** in memory allocations
-- **Faster response times** for balancing decisions
-- **Improved scalability** for clusters with many nodes and VMs
+### Performance Optimizations
+- **Integer math** for faster calculations
+- **Cached time calls** to reduce overhead
+- **Pre-allocated data structures** for efficiency
+- **Configurable migration limits** to prevent excessive operations
+
+**Note**: Performance claims have been updated to be honest about testing status. Actual performance should be validated in your specific environment.
 
 ## Security Improvements
 
@@ -198,11 +200,11 @@ The GoProxLB codebase is well-structured and follows Go best practices. The impr
 3. **User Experience**: Added quick references, troubleshooting guides, and practical examples
 4. **Maintainability**: Clean architecture with proper separation of concerns
 
-The project is now ready for production use with clear documentation for operations teams and a robust, well-tested codebase that can scale to large Proxmox clusters.
+The project is now ready for initial deployment with clear documentation for operations teams and a robust, well-structured codebase designed for small to medium Proxmox clusters.
 
 ## Next Steps
 
-1. **Deploy to production** using the improved documentation
+1. **Deploy for testing** using the improved documentation
 2. **Monitor performance** and gather feedback
 3. **Implement additional features** based on user requirements
 4. **Expand test coverage** for edge cases

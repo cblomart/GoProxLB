@@ -397,14 +397,14 @@ cat /proc/$(pgrep goproxlb)/status | grep VmRSS
 ## Performance Tuning
 
 ### Resource Usage Guidelines
-- **Memory**: 10-50 MB typical usage
-- **CPU**: Negligible idle, spikes during balancing
+- **Memory**: Estimated 10-50 MB typical usage (actual usage may vary)
+- **CPU**: Low idle usage, increased during balancing operations
 - **Network**: Minimal, only API calls to Proxmox
 
 ### Scaling Recommendations
 - **Small clusters** (< 10 nodes): 5-minute interval, threshold balancer
-- **Medium clusters** (10-50 nodes): 5-minute interval, advanced balancer
-- **Large clusters** (50+ nodes): 2-3 minute interval, advanced balancer
+- **Medium clusters** (10-20 nodes): 5-minute interval, advanced balancer
+- **Large clusters** (20+ nodes): 2-3 minute interval, advanced balancer (testing recommended)
 
 ### Configuration Tuning
 ```yaml

@@ -52,7 +52,7 @@ sudo ./goproxlb-linux-amd64 install --config /etc/goproxlb/config.yaml --enable
 ### **Resource Optimization**
 - Advanced algorithms analyze historical usage patterns
 - Predictive placement using P90/P95 percentile analysis
-- 20-40% better resource utilization vs manual management
+- Intelligent resource distribution based on workload analysis
 
 ### **Zero Downtime Operations**
 - Live VM migration with no service interruption
@@ -254,10 +254,11 @@ spec:
 - **CPU**: Negligible idle, spikes during balancing
 - **Network**: Minimal, only API calls to Proxmox
 
-### Scaling Limits
-- **Tested**: Up to 100 nodes, 1000+ VMs
-- **Recommended**: 50 nodes, 500 VMs for optimal performance
+### Scaling Considerations
+- **Designed for**: Small to medium Proxmox clusters
+- **Recommended**: Start with 5-20 nodes for initial deployment
 - **Balancing Interval**: 2-10 minutes depending on cluster size
+- **Testing needed**: Performance validation for larger clusters
 
 ### Performance Optimizations
 - Integer math for faster calculations
