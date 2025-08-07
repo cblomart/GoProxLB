@@ -356,18 +356,12 @@ func TestCalculateResourceGain(t *testing.T) {
 	client := &mockClient{}
 	balancer := NewBalancer(client, cfg)
 
-	vm := models.VM{
-		ID:   100,
-		Name: "test-vm",
-		Node: "node1",
-	}
-
 	nodeScores := []models.NodeScore{
 		{Node: "node1", Score: 85.0}, // Source (overloaded)
 		{Node: "node2", Score: 30.0}, // Target (underloaded)
 	}
 
-	gain := balancer.calculateResourceGain(&vm, "node1", "node2", nodeScores)
+	gain := balancer.calculateResourceGain("node1", "node2", nodeScores)
 
 	if gain <= 0 {
 		t.Errorf("Expected positive resource gain, got %.2f", gain)
@@ -787,13 +781,8 @@ func TestAdvancedBalancerResourceGainCalculation(t *testing.T) {
 		},
 	}
 
-	vm := models.VM{
-		ID:   100,
-		Name: "test-vm",
-	}
-
 	// Test resource gain calculation
-	gain := balancer.calculateResourceGain(&vm, "node1", "node2", nodeScores)
+	gain := balancer.calculateResourceGain("node1", "node2", nodeScores)
 	if gain <= 0 {
 		t.Errorf("Expected positive resource gain, got %f", gain)
 	}
