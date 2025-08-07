@@ -1,6 +1,6 @@
 run:
   timeout: 5m
-  go: "1.21"
+  go: "1.22"
 
 linters:
   enable:
@@ -66,8 +66,8 @@ linters-settings:
   goheader:
     template-path: ""
     values:
-      const: "GoProxLB"
-      pattern: "GoProxLB"
+      const: GoProxLB
+      pattern: GoProxLB
   gosec:
     excludes:
       - G404 # Use of weak random number generator
