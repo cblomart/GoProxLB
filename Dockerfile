@@ -16,6 +16,10 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Explicitly ensure config files are copied
+COPY config.yaml /app/config.yaml
+COPY config-examples/ /app/config-examples/
+
 # Build arguments
 ARG VERSION=dev
 ARG BUILD_TIME=unknown
