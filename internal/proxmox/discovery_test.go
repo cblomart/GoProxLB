@@ -32,11 +32,11 @@ func (m *MockClient) MigrateVM(vmID int, sourceNode, targetNode string) error {
 	return m.err
 }
 
-func (m *MockClient) GetNodeHistoricalData(nodeName string, timeframe string) ([]HistoricalMetric, error) {
+func (m *MockClient) GetNodeHistoricalData(nodeName, timeframe string) ([]HistoricalMetric, error) {
 	return nil, m.err
 }
 
-func (m *MockClient) GetVMHistoricalData(nodeName string, vmID int, vmType string, timeframe string) ([]HistoricalMetric, error) {
+func (m *MockClient) GetVMHistoricalData(nodeName string, vmID int, vmType, timeframe string) ([]HistoricalMetric, error) {
 	return nil, m.err
 }
 

@@ -409,12 +409,10 @@ func (b *AdvancedBalancer) updateCapacityMetrics(nodes []models.Node) {
 
 // updateCapacityMetricsSimplified provides simplified capacity metrics when historical data is not available
 func (b *AdvancedBalancer) updateCapacityMetricsSimplified(node *models.Node) {
-	var cpuValues, memoryValues, storageValues []float32
+	var cpuValues []float32
 
 	// Use current data as fallback
 	cpuValues = append(cpuValues, node.CPU.Usage)
-	memoryValues = append(memoryValues, node.Memory.Usage)
-	storageValues = append(storageValues, node.Storage.Usage)
 
 	// Calculate percentiles (simplified - in reality, you'd store historical data)
 	cpuMetrics := b.calculatePercentiles(cpuValues)
@@ -955,7 +953,7 @@ func (b *AdvancedBalancer) GetCapacityMetrics(nodeName string) (*models.Capacity
 }
 
 // PredictResourceEvolution predicts resource usage evolution for a given period
-func (b *AdvancedBalancer) PredictResourceEvolution(nodeName string, resourceType string, forecastDuration time.Duration) float64 {
+func (b *AdvancedBalancer) PredictResourceEvolution(nodeName, resourceType string, forecastDuration time.Duration) float64 {
 	metrics, exists := b.capacityMetrics[nodeName]
 	if !exists {
 		return 0.0

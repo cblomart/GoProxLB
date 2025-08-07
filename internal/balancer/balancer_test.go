@@ -32,11 +32,11 @@ func (m *mockClient) MigrateVM(vmID int, sourceNode, targetNode string) error {
 	return m.err
 }
 
-func (m *mockClient) GetNodeHistoricalData(nodeName string, timeframe string) ([]proxmox.HistoricalMetric, error) {
+func (m *mockClient) GetNodeHistoricalData(nodeName, timeframe string) ([]proxmox.HistoricalMetric, error) {
 	return m.historicalData[nodeName], m.err
 }
 
-func (m *mockClient) GetVMHistoricalData(nodeName string, vmID int, vmType string, timeframe string) ([]proxmox.HistoricalMetric, error) {
+func (m *mockClient) GetVMHistoricalData(nodeName string, vmID int, vmType, timeframe string) ([]proxmox.HistoricalMetric, error) {
 	return m.vmHistoricalData[fmt.Sprintf("%s-%d-%s-%s", nodeName, vmID, vmType, timeframe)], m.err
 }
 
@@ -305,7 +305,7 @@ func TestFindMigrations(t *testing.T) {
 	for _, node := range client.nodes {
 		allVMs = append(allVMs, node.VMs...)
 	}
-	balancer.engine.ProcessVMs(allVMs)
+	_ = balancer.engine.ProcessVMs(allVMs)
 
 	nodeScores := balancer.calculateNodeScores(client.nodes)
 	migrations := balancer.findMigrations(client.nodes, nodeScores)

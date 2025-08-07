@@ -37,11 +37,11 @@ func (m *MockDistributedClient) MigrateVM(vmID int, sourceNode, targetNode strin
 	return m.err
 }
 
-func (m *MockDistributedClient) GetNodeHistoricalData(nodeName string, timeframe string) ([]proxmox.HistoricalMetric, error) {
+func (m *MockDistributedClient) GetNodeHistoricalData(nodeName, timeframe string) ([]proxmox.HistoricalMetric, error) {
 	return nil, m.err
 }
 
-func (m *MockDistributedClient) GetVMHistoricalData(nodeName string, vmID int, vmType string, timeframe string) ([]proxmox.HistoricalMetric, error) {
+func (m *MockDistributedClient) GetVMHistoricalData(nodeName string, vmID int, vmType, timeframe string) ([]proxmox.HistoricalMetric, error) {
 	return nil, m.err
 }
 
@@ -82,7 +82,7 @@ func (m *MockDistributedBalancer) GetCapacityMetrics(nodeName string) (*models.C
 	}, m.err
 }
 
-func (m *MockDistributedBalancer) PredictResourceEvolution(nodeName string, forecast string) (map[string]float64, error) {
+func (m *MockDistributedBalancer) PredictResourceEvolution(nodeName, forecast string) (map[string]float64, error) {
 	return map[string]float64{
 		"cpu":     75.0,
 		"memory":  80.0,
@@ -163,7 +163,7 @@ balancing:
 func TestNewDistributedApp(t *testing.T) {
 	// Test creating distributed app with temporary socket directory
 	app, _ := createTestDistributedApp(t, 7947)
-	defer app.Stop()
+	defer func() { _ = app.Stop() }()
 
 	if app == nil {
 		t.Fatal("Expected app but got nil")
@@ -257,7 +257,7 @@ balancing:
 
 func TestDistributedAppGetStatus(t *testing.T) {
 	app, _ := createTestDistributedApp(t, 7949)
-	defer app.Stop()
+	defer func() { _ = app.Stop() }()
 
 	// Test getting status
 	status := app.GetStatus()
@@ -289,7 +289,7 @@ func TestDistributedAppGetStatus(t *testing.T) {
 
 func TestDistributedAppRunBalancingCycle(t *testing.T) {
 	app, _ := createTestDistributedApp(t, 7950)
-	defer app.Stop()
+	defer func() { _ = app.Stop() }()
 
 	// Test running balancing cycle when not leader
 	err := app.runBalancingCycle()
@@ -321,7 +321,7 @@ func TestDistributedAppRunBalancingCycle(t *testing.T) {
 
 func TestDistributedAppRunBalancingCycleError(t *testing.T) {
 	app, _ := createTestDistributedApp(t, 7951)
-	defer app.Stop()
+	defer func() { _ = app.Stop() }()
 
 	// Set as leader
 	app.isLeader = true
@@ -339,7 +339,7 @@ func TestDistributedAppRunBalancingCycleError(t *testing.T) {
 
 func TestDistributedAppStartBalancingLoop(t *testing.T) {
 	app, _ := createTestDistributedApp(t, 7952)
-	defer app.Stop()
+	defer func() { _ = app.Stop() }()
 
 	// Test starting balancing loop
 	app.startBalancingLoop()
@@ -353,7 +353,7 @@ func TestDistributedAppStartBalancingLoop(t *testing.T) {
 
 func TestDistributedAppStartBalancingLoopDisabled(t *testing.T) {
 	app, _ := createTestDistributedApp(t, 7953)
-	defer app.Stop()
+	defer func() { _ = app.Stop() }()
 
 	// Test starting balancing loop
 	app.startBalancingLoop()
@@ -367,7 +367,7 @@ func TestDistributedAppStartBalancingLoopDisabled(t *testing.T) {
 
 func TestDistributedAppStopBalancingLoop(t *testing.T) {
 	app, _ := createTestDistributedApp(t, 7954)
-	defer app.Stop()
+	defer func() { _ = app.Stop() }()
 
 	// Test stopping balancing loop
 	app.stopBalancingLoop()

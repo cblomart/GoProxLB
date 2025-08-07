@@ -97,7 +97,7 @@ func TestNewRaftNode(t *testing.T) {
 
 				done := make(chan struct{})
 				go func() {
-					node.Stop()
+					_ = node.Stop()
 					close(done)
 				}()
 
@@ -130,7 +130,7 @@ func TestRaftNodeStart(t *testing.T) {
 		// Stop in goroutine with timeout
 		done := make(chan struct{})
 		go func() {
-			node.Stop()
+			_ = node.Stop()
 			close(done)
 		}()
 
@@ -176,7 +176,7 @@ func TestRaftNodeIsLeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Start the node with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -214,7 +214,7 @@ func TestRaftNodeGetLeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Start the node with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -251,7 +251,7 @@ func TestRaftNodeGetState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Test initial state
 	state := node.GetState()
@@ -293,7 +293,7 @@ func TestRaftNodeGetPeers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Test getting peers
 	retrievedPeers := node.GetPeers()
@@ -315,7 +315,7 @@ func TestRaftNodeWaitForLeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Start the node with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -353,7 +353,7 @@ func TestRaftNodeWaitForLeaderTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Test waiting for leader with very short timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -372,7 +372,7 @@ func TestRaftNodeGetLeaderChan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Test getting leader channel
 	leaderChan := node.GetLeaderChan()
@@ -492,7 +492,7 @@ func TestRaftNodeDataDirectoryCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
-	defer node.Stop()
+	defer func() { _ = node.Stop() }()
 
 	// Check that directory was created
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {

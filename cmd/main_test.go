@@ -125,7 +125,7 @@ func captureCommandOutput(cmd *cobra.Command, args []string) string {
 
 	// Execute command
 	cmd.SetArgs(args)
-	cmd.Execute()
+	_ = cmd.Execute()
 
 	// Restore stdout
 	w.Close()

@@ -176,7 +176,8 @@ func (c *Client) getNodeDetails(nodeName string) (*models.Node, error) {
 
 	// Check if node is in maintenance mode by looking for maintenance tag
 	inMaintenance := false
-	for _, vm := range vms {
+	for i := range vms {
+		vm := &vms[i]
 		for _, tag := range vm.Tags {
 			if strings.Contains(tag, "maintenance") {
 				inMaintenance = true
@@ -335,7 +336,7 @@ func (c *Client) MigrateVM(vmID int, sourceNode, targetNode string) error {
 }
 
 // GetNodeHistoricalData retrieves historical metrics for a node
-func (c *Client) GetNodeHistoricalData(nodeName string, timeframe string) ([]HistoricalMetric, error) {
+func (c *Client) GetNodeHistoricalData(nodeName, timeframe string) ([]HistoricalMetric, error) {
 	// timeframe: hour, day, week, month, year
 	resp, err := c.request("GET", fmt.Sprintf("/api2/json/nodes/%s/rrddata?timeframe=%s", nodeName, timeframe), nil)
 	if err != nil {
@@ -370,7 +371,7 @@ func (c *Client) GetNodeHistoricalData(nodeName string, timeframe string) ([]His
 }
 
 // GetVMHistoricalData retrieves historical metrics for a VM
-func (c *Client) GetVMHistoricalData(nodeName string, vmID int, vmType string, timeframe string) ([]HistoricalMetric, error) {
+func (c *Client) GetVMHistoricalData(nodeName string, vmID int, vmType, timeframe string) ([]HistoricalMetric, error) {
 	// vmType: qemu or lxc
 	resp, err := c.request("GET", fmt.Sprintf("/api2/json/nodes/%s/%s/%d/rrddata?timeframe=%s", nodeName, vmType, vmID, timeframe), nil)
 	if err != nil {

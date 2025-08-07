@@ -62,7 +62,7 @@ func (m *mockClient) MigrateVM(vmID int, sourceNode, targetNode string) error {
 	return nil
 }
 
-func (m *mockClient) GetNodeHistoricalData(nodeName string, timeframe string) ([]proxmox.HistoricalMetric, error) {
+func (m *mockClient) GetNodeHistoricalData(nodeName, timeframe string) ([]proxmox.HistoricalMetric, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -93,7 +93,7 @@ func (m *mockClient) GetNodeHistoricalData(nodeName string, timeframe string) ([
 	}, nil
 }
 
-func (m *mockClient) GetVMHistoricalData(nodeName string, vmID int, vmType string, timeframe string) ([]proxmox.HistoricalMetric, error) {
+func (m *mockClient) GetVMHistoricalData(nodeName string, vmID int, vmType, timeframe string) ([]proxmox.HistoricalMetric, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -841,7 +841,7 @@ func TestAppDaemonStart(t *testing.T) {
 
 	// Start daemon in background
 	go func() {
-		app.runBalancingCycle()
+		_ = app.runBalancingCycle()
 	}()
 
 	// Wait a bit for daemon to start
@@ -889,7 +889,7 @@ func TestAppDaemonWithBalancingResults(t *testing.T) {
 
 	// Start daemon in background
 	go func() {
-		app.runBalancingCycle()
+		_ = app.runBalancingCycle()
 	}()
 
 	// Wait a bit for daemon to run balancing cycle
@@ -927,7 +927,7 @@ func TestAppDaemonWithBalancingError(t *testing.T) {
 
 	// Start daemon in background
 	go func() {
-		app.runBalancingCycle()
+		_ = app.runBalancingCycle()
 	}()
 
 	// Wait a bit for daemon to run balancing cycle
@@ -965,7 +965,7 @@ func TestAppDaemonWithClientError(t *testing.T) {
 
 	// Start daemon in background
 	go func() {
-		app.runBalancingCycle()
+		_ = app.runBalancingCycle()
 	}()
 
 	// Wait a bit for daemon to run balancing cycle

@@ -42,7 +42,8 @@ func (d *DiscoveryService) DiscoverClusterNodes() ([]ClusterNode, error) {
 	var nodes []ClusterNode
 
 	// Process each node in the cluster
-	for _, node := range proxmoxNodes {
+	for i := range proxmoxNodes {
+		node := &proxmoxNodes[i]
 		clusterNode := ClusterNode{
 			NodeID: node.Name, // Use Name as NodeID since that's what we have
 			Name:   node.Name,
@@ -106,7 +107,8 @@ func (d *DiscoveryService) GetCurrentNodeID() (string, error) {
 	// Find the node that matches our connection
 	// For now, we'll use a simple heuristic: the first online node
 	// In a real implementation, you might want to use the node's hostname or IP
-	for _, node := range proxmoxNodes {
+	for i := range proxmoxNodes {
+		node := &proxmoxNodes[i]
 		if node.Status == "online" {
 			return node.Name, nil
 		}
