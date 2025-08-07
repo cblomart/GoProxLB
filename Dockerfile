@@ -51,10 +51,10 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/goproxlb .
 
-# Copy sample configs
-COPY config.yaml ./config.yaml.example
-COPY config-examples/production-distributed.yaml ./config-examples/
-COPY config-examples/local-development.yaml ./config-examples/
+# Copy sample configs from builder stage
+COPY --from=builder /app/config.yaml ./config.yaml.example
+COPY --from=builder /app/config-examples/production-distributed.yaml ./config-examples/
+COPY --from=builder /app/config-examples/local-development.yaml ./config-examples/
 
 # Change ownership to non-root user
 RUN chown -R goproxlb:goproxlb /app
