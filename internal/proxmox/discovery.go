@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	nodeStatusOnline = "online"
+)
+
 // ClusterNode represents a node in the Proxmox cluster
 type ClusterNode struct {
 	NodeID      string `json:"nodeid"`
@@ -48,7 +52,7 @@ func (d *DiscoveryService) DiscoverClusterNodes() ([]ClusterNode, error) {
 			NodeID: node.Name, // Use Name as NodeID since that's what we have
 			Name:   node.Name,
 			Status: node.Status,
-			Online: node.Status == "online",
+			Online: node.Status == nodeStatusOnline,
 		}
 
 		// Try to determine the IP address
@@ -109,7 +113,7 @@ func (d *DiscoveryService) GetCurrentNodeID() (string, error) {
 	// In a real implementation, you might want to use the node's hostname or IP
 	for i := range proxmoxNodes {
 		node := &proxmoxNodes[i]
-		if node.Status == "online" {
+		if node.Status == nodeStatusOnline {
 			return node.Name, nil
 		}
 	}

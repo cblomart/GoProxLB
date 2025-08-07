@@ -13,6 +13,12 @@ import (
 	"github.com/cblomart/GoProxLB/internal/rules"
 )
 
+const (
+	vmStatusRunning         = "running"
+	defaultTimeframe        = "day"
+	criticalityLevelCritical = "Critical"
+)
+
 // AdvancedBalancer represents the advanced load balancer with profiling and capacity planning
 type AdvancedBalancer struct {
 	client           proxmox.ClientInterface
@@ -113,7 +119,7 @@ func (b *AdvancedBalancer) GetClusterStatus() (*models.ClusterStatus, error) {
 		totalVMs += len(node.VMs)
 		for j := range node.VMs {
 			vm := &node.VMs[j]
-			if vm.Status == "running" {
+			if vm.Status == vmStatusRunning {
 				runningVMs++
 			}
 		}
@@ -146,7 +152,7 @@ func (b *AdvancedBalancer) updateLoadProfiles(nodes []models.Node) {
 		node := &nodes[i]
 		for j := range node.VMs {
 			vm := &node.VMs[j]
-			if vm.Status == "running" {
+			if vm.Status == vmStatusRunning {
 				profile := b.analyzeLoadProfile(vm, node)
 				b.loadProfiles[vm.ID] = profile
 			}
@@ -157,10 +163,10 @@ func (b *AdvancedBalancer) updateLoadProfiles(nodes []models.Node) {
 // analyzeLoadProfile analyzes the load profile of a VM using historical data
 func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM, node *models.Node) *models.LoadProfile {
 	// Get historical data for the VM
-	timeframe := "day" // Default to 24 hours
+	timeframe := defaultTimeframe // Default to 24 hours
 	if window, err := b.config.GetLoadProfilesWindow(); err == nil {
 		if window >= 24*time.Hour {
-			timeframe = "day"
+			timeframe = defaultTimeframe
 		} else if window >= time.Hour {
 			timeframe = "hour"
 		}
@@ -360,12 +366,12 @@ func (b *AdvancedBalancer) updateCapacityMetrics(nodes []models.Node) {
 	for i := range nodes {
 		node := &nodes[i]
 		// Get historical data for the node
-		timeframe := "day" // Default to 24 hours
+		timeframe := defaultTimeframe // Default to 24 hours
 		if forecast, err := b.config.GetCapacityForecast(); err == nil {
 			if forecast >= 7*24*time.Hour {
 				timeframe = "week"
 			} else if forecast >= 24*time.Hour {
-				timeframe = "day"
+				timeframe = defaultTimeframe
 			} else {
 				timeframe = "hour"
 			}
@@ -1085,7 +1091,7 @@ func (b *AdvancedBalancer) AnalyzeVMProfile(vm models.VM, nodeName string) VMPro
 		// Analyze priority and criticality
 		switch loadProfile.Priority {
 		case models.PriorityRealtime:
-			profile.Criticality = "Critical"
+			profile.Criticality = criticalityLevelCritical
 			profile.CPUBuffer += 20.0 // Extra buffer for realtime
 			profile.Recommendations = append(profile.Recommendations, "Realtime priority - extra CPU buffer recommended")
 		case models.PriorityInteractive:
@@ -1096,7 +1102,7 @@ func (b *AdvancedBalancer) AnalyzeVMProfile(vm models.VM, nodeName string) VMPro
 
 		switch loadProfile.Criticality {
 		case models.CriticalityCritical:
-			profile.Criticality = "Critical"
+			profile.Criticality = criticalityLevelCritical
 			profile.Recommendations = append(profile.Recommendations, "Critical VM - ensure high availability and redundancy")
 		case models.CriticalityImportant:
 			profile.Criticality = "Important"
@@ -1110,7 +1116,7 @@ func (b *AdvancedBalancer) AnalyzeVMProfile(vm models.VM, nodeName string) VMPro
 		// Analyze tags for hints
 		for _, tag := range vm.Tags {
 			if strings.Contains(tag, "critical") || strings.Contains(tag, "essential") {
-				profile.Criticality = "Critical"
+				profile.Criticality = criticalityLevelCritical
 				profile.CPUBuffer = 70.0
 				profile.MemoryBuffer = 60.0
 				profile.Recommendations = append(profile.Recommendations, "Critical VM based on tags - high buffer recommended")

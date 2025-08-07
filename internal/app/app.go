@@ -23,6 +23,12 @@ import (
 	"github.com/cblomart/GoProxLB/internal/proxmox"
 )
 
+const (
+	vmStatusRunning   = "running"
+	balancerThreshold = "threshold"
+	balancerAdvanced  = "advanced"
+)
+
 // App represents the main application
 type App struct {
 	config   *config.Config
@@ -156,7 +162,7 @@ func StartWithBalancerType(configPath, balancerType string) error {
 
 	// Override balancer type if specified
 	if balancerType != "" {
-		if balancerType != "threshold" && balancerType != "advanced" {
+		if balancerType != balancerThreshold && balancerType != balancerAdvanced {
 			return fmt.Errorf("invalid balancer type: %s (must be 'threshold' or 'advanced')", balancerType)
 		}
 		app.config.Balancing.BalancerType = balancerType
@@ -374,13 +380,13 @@ func ListVMs(configPath string) error {
 		for _, vm := range node.VMs {
 			totalVMs++
 			status := "stopped"
-			if vm.Status == "running" {
-				status = "running"
+			if vm.Status == vmStatusRunning {
+				status = vmStatusRunning
 				runningVMs++
 			}
 
 			fmt.Printf("    %d: %s (%s) - %s\n", vm.ID, vm.Name, vm.Type, status)
-			if vm.Status == "running" {
+			if vm.Status == vmStatusRunning {
 				fmt.Printf("      CPU: %.1f%%, Memory: %.1f GB\n",
 					vm.CPU, float64(vm.Memory)/1024/1024/1024)
 			}
@@ -437,7 +443,7 @@ func ForceBalanceWithBalancerType(configPath string, force bool, balancerType st
 
 	// Override balancer type if specified
 	if balancerType != "" {
-		if balancerType != "threshold" && balancerType != "advanced" {
+		if balancerType != balancerThreshold && balancerType != balancerAdvanced {
 			return fmt.Errorf("invalid balancer type: %s (must be 'threshold' or 'advanced')", balancerType)
 		}
 		app.config.Balancing.BalancerType = balancerType
