@@ -1,6 +1,6 @@
 module github.com/cblomart/GoProxLB
 
-go 1.21
+go 1.22
 
 require (
 	github.com/hashicorp/raft v1.7.3

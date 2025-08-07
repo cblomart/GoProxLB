@@ -325,6 +325,13 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🔒 Security Note
+
+This project uses Go 1.22 and may be affected by known vulnerabilities in the Go standard library. The CI/CD pipeline includes vulnerability scanning, and we recommend:
+- Regular updates to the latest Go version
+- Monitoring security advisories
+- Testing in isolated environments before production deployment
+
 ---
 
 **Ready to optimize your Proxmox cluster?** Start with the [Quick Start](#-quick-start) guide above!
