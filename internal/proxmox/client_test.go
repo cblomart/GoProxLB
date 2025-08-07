@@ -9,6 +9,14 @@ import (
 	"github.com/cblomart/GoProxLB/internal/config"
 )
 
+// Helper function for encoding JSON in tests
+func writeJSON(w http.ResponseWriter, data interface{}) {
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		// In tests, we can ignore the error or log it
+		return
+	}
+}
+
 // Mock server for testing
 func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +24,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/access/ticket" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": map[string]interface{}{
 					"ticket":              "test-ticket",
 					"CSRFPreventionToken": "test-csrf",
@@ -29,7 +37,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/cluster/status" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{
 					{
 						"name": "test-cluster",
@@ -44,7 +52,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{
 					{
 						"node":            "node1",
@@ -77,7 +85,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node1/qemu" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{
 					{
 						"vmid":   100,
@@ -106,7 +114,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node2/qemu" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{
 					{
 						"vmid":   102,
@@ -126,7 +134,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node1/storage" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{
 					{
 						"storage": "local",
@@ -143,7 +151,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node2/storage" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{
 					{
 						"storage": "local",
@@ -161,7 +169,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node1/status" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": map[string]interface{}{
 					"cpu":     4,
 					"maxcpu":  8,
@@ -176,7 +184,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node2/status" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": map[string]interface{}{
 					"cpu":     2,
 					"maxcpu":  8,
@@ -192,7 +200,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node1/lxc" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{},
 			})
 			return
@@ -201,7 +209,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.URL.Path == "/api2/json/nodes/node2/lxc" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": []map[string]interface{}{},
 			})
 			return
@@ -211,7 +219,7 @@ func setupMockServer(t *testing.T) (*httptest.Server, *config.ProxmoxConfig) {
 		if r.Method == "POST" && r.URL.Path == "/api2/json/nodes/node1/qemu/100/migrate" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, map[string]interface{}{
 				"data": "UPID:node1:00000001:00000001:test-migration",
 			})
 			return
@@ -379,7 +387,7 @@ func TestMigrateVM(t *testing.T) {
 func TestMigrateVMError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		writeJSON(w, map[string]interface{}{
 			"errors": map[string]interface{}{
 				"migration": "VM is locked",
 			},
@@ -409,7 +417,7 @@ func TestRequestWithAuth(t *testing.T) {
 			t.Error("Expected Authorization header")
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		writeJSON(w, map[string]interface{}{
 			"data": "test",
 		})
 	}))
@@ -437,7 +445,7 @@ func TestRequestWithToken(t *testing.T) {
 			t.Errorf("Expected token header, got %s", auth)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		writeJSON(w, map[string]interface{}{
 			"data": "test",
 		})
 	}))
@@ -460,7 +468,7 @@ func TestRequestLocalAccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Local access should work without auth headers
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		writeJSON(w, map[string]interface{}{
 			"data": "test",
 		})
 	}))

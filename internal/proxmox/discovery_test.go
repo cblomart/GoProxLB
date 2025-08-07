@@ -160,7 +160,7 @@ func TestDiscoveryServiceGetRaftPeers(t *testing.T) {
 	// The actual number of peers will depend on network connectivity
 	// We just verify the function works without errors
 	t.Logf("Found %d peers for node pve-192.168.1.10", len(peers))
-	
+
 	// Verify no peers contain the current node
 	for _, peer := range peers {
 		if peer == "192.168.1.10:7946" {
@@ -300,9 +300,9 @@ func TestDiscoveryServiceValidateClusterTopology(t *testing.T) {
 		expectWarn bool
 	}{
 		{
-			name: "no nodes error",
-			nodes: []models.Node{},
-			expectErr: true,
+			name:       "no nodes error",
+			nodes:      []models.Node{},
+			expectErr:  true,
 			expectWarn: false,
 		},
 	}

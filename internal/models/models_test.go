@@ -50,15 +50,15 @@ func TestNodeValidation(t *testing.T) {
 func TestVMValidation(t *testing.T) {
 	// Test valid VM
 	vm := VM{
-		ID:       100,
-		Name:     "test-vm",
-		Node:     "test-node",
-		Type:     "qemu",
-		Status:   "running",
-		CPU:      50.0,
-		Memory:   1024 * 1024 * 1024, // 1GB
-		Tags:     []string{"web", "production"},
-		Created:  time.Now(),
+		ID:        100,
+		Name:      "test-vm",
+		Node:      "test-node",
+		Type:      "qemu",
+		Status:    "running",
+		CPU:       50.0,
+		Memory:    1024 * 1024 * 1024, // 1GB
+		Tags:      []string{"web", "production"},
+		Created:   time.Now(),
 		LastMoved: time.Now().Add(-1 * time.Hour),
 	}
 
@@ -195,8 +195,8 @@ func TestMigrationHistoryValidation(t *testing.T) {
 func TestBalancingResultValidation(t *testing.T) {
 	// Test valid balancing result
 	result := BalancingResult{
-		SourceNode:   "node1",
-		TargetNode:   "node2",
+		SourceNode: "node1",
+		TargetNode: "node2",
 		VM: VM{
 			ID:   100,
 			Name: "test-vm",

@@ -29,11 +29,11 @@ import (
 const Version = "1.0.0"
 
 var (
-	configPath string
-	detailed   bool
-	forecast   string
-	csvOutput  string
-	force      bool
+	configPath   string
+	detailed     bool
+	forecast     string
+	csvOutput    string
+	force        bool
 	balancerType string
 	serviceName  = "goproxlb"
 	serviceUser  = "goproxlb"
@@ -169,7 +169,7 @@ Examples:
 func init() {
 	// Global flags
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "Configuration file path (optional - uses defaults with auto-detection)")
-	
+
 	// Command-specific flags
 	listCmd.Flags().BoolVarP(&detailed, "detailed", "d", false, "Show detailed information")
 	capacityCmd.Flags().BoolVarP(&detailed, "detailed", "d", false, "Show detailed information")
@@ -177,7 +177,7 @@ func init() {
 	capacityCmd.Flags().StringVarP(&csvOutput, "csv", "", "", "Output to CSV file")
 	balanceCmd.Flags().BoolVarP(&force, "force", "f", false, "Force balancing even if no improvement")
 	balanceCmd.Flags().StringVarP(&balancerType, "balancer", "b", "", "Balancer type (threshold or advanced)")
-	
+
 	// Install command flags
 	installCmd.Flags().StringVarP(&serviceUser, "user", "u", "goproxlb", "User to run the service as")
 	installCmd.Flags().StringVarP(&serviceGroup, "group", "g", "goproxlb", "Group to run the service as")

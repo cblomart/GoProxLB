@@ -27,12 +27,12 @@ func (m *mockBalancer) GetClusterStatus() (*models.ClusterStatus, error) {
 
 // Mock client for testing
 type mockClient struct {
-	nodes           []models.Node
-	err             error
-	clusterInfo     *models.Cluster
-	historicalData  map[string][]proxmox.HistoricalMetric
+	nodes            []models.Node
+	err              error
+	clusterInfo      *models.Cluster
+	historicalData   map[string][]proxmox.HistoricalMetric
 	vmHistoricalData map[string][]proxmox.HistoricalMetric
-	migrationErrors map[int]error // VM ID -> error
+	migrationErrors  map[int]error // VM ID -> error
 }
 
 func (m *mockClient) GetClusterInfo() (*models.Cluster, error) {
@@ -106,19 +106,19 @@ func (m *mockClient) GetVMHistoricalData(nodeName string, vmID int, vmType strin
 		{
 			Timestamp: time.Now().Add(-1 * time.Hour),
 			CPU:       30.0,
-			Memory:    512 * 1024 * 1024, // 512MB
+			Memory:    512 * 1024 * 1024,       // 512MB
 			Disk:      10 * 1024 * 1024 * 1024, // 10GB
 		},
 		{
 			Timestamp: time.Now().Add(-30 * time.Minute),
 			CPU:       45.0,
-			Memory:    768 * 1024 * 1024, // 768MB
+			Memory:    768 * 1024 * 1024,       // 768MB
 			Disk:      10 * 1024 * 1024 * 1024, // 10GB
 		},
 		{
 			Timestamp: time.Now(),
 			CPU:       35.0,
-			Memory:    640 * 1024 * 1024, // 640MB
+			Memory:    640 * 1024 * 1024,       // 640MB
 			Disk:      10 * 1024 * 1024 * 1024, // 10GB
 		},
 	}, nil
@@ -819,7 +819,7 @@ func ForceBalanceWithBalancerTypeWithDependencies(configPath string, force bool,
 func TestAppDaemonStart(t *testing.T) {
 	config := createTestConfig()
 	config.Balancing.Interval = "100ms" // Short interval for testing
-	
+
 	configLoader := &mockConfigLoader{
 		config: config,
 		err:    nil,
@@ -857,7 +857,7 @@ func TestAppDaemonStart(t *testing.T) {
 func TestAppDaemonWithBalancingResults(t *testing.T) {
 	config := createTestConfig()
 	config.Balancing.Interval = "100ms" // Short interval for testing
-	
+
 	configLoader := &mockConfigLoader{
 		config: config,
 		err:    nil,
@@ -905,7 +905,7 @@ func TestAppDaemonWithBalancingResults(t *testing.T) {
 func TestAppDaemonWithBalancingError(t *testing.T) {
 	config := createTestConfig()
 	config.Balancing.Interval = "100ms" // Short interval for testing
-	
+
 	configLoader := &mockConfigLoader{
 		config: config,
 		err:    nil,
@@ -943,7 +943,7 @@ func TestAppDaemonWithBalancingError(t *testing.T) {
 func TestAppDaemonWithClientError(t *testing.T) {
 	config := createTestConfig()
 	config.Balancing.Interval = "100ms" // Short interval for testing
-	
+
 	configLoader := &mockConfigLoader{
 		config: config,
 		err:    nil,
@@ -1062,7 +1062,7 @@ func TestAppForceBalanceWithMigrationError(t *testing.T) {
 func TestAppWithDisabledBalancing(t *testing.T) {
 	config := createTestConfig()
 	// Balancing is always enabled when the app is running
-	
+
 	configLoader := &mockConfigLoader{
 		config: config,
 		err:    nil,
@@ -1092,7 +1092,7 @@ func TestAppWithDisabledBalancing(t *testing.T) {
 func TestAppWithMaintenanceNodes(t *testing.T) {
 	config := createTestConfig()
 	config.Cluster.MaintenanceNodes = []string{"node1"} // Put node1 in maintenance
-	
+
 	configLoader := &mockConfigLoader{
 		config: config,
 		err:    nil,

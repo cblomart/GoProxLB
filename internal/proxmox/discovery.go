@@ -9,12 +9,12 @@ import (
 
 // ClusterNode represents a node in the Proxmox cluster
 type ClusterNode struct {
-	NodeID   string `json:"nodeid"`
-	Name     string `json:"name"`
-	IP       string `json:"ip"`
-	Status   string `json:"status"`
-	Online   bool   `json:"online"`
-	HasGoProxLB bool `json:"has_goproxlb"`
+	NodeID      string `json:"nodeid"`
+	Name        string `json:"name"`
+	IP          string `json:"ip"`
+	Status      string `json:"status"`
+	Online      bool   `json:"online"`
+	HasGoProxLB bool   `json:"has_goproxlb"`
 }
 
 // DiscoveryService handles Proxmox cluster node discovery
@@ -40,7 +40,7 @@ func (d *DiscoveryService) DiscoverClusterNodes() ([]ClusterNode, error) {
 	}
 
 	var nodes []ClusterNode
-	
+
 	// Process each node in the cluster
 	for _, node := range proxmoxNodes {
 		clusterNode := ClusterNode{
@@ -77,7 +77,7 @@ func (d *DiscoveryService) GetRaftPeers(currentNodeID string) ([]string, error) 
 	}
 
 	var peers []string
-	
+
 	for _, node := range nodes {
 		// Skip the current node
 		if node.NodeID == currentNodeID {
@@ -119,7 +119,7 @@ func (d *DiscoveryService) GetCurrentNodeID() (string, error) {
 func (d *DiscoveryService) extractIPFromNodeID(nodeID string) string {
 	// Common patterns for node IDs that include IPs
 	// Example: "pve-192.168.1.10" or "node-10.0.0.5"
-	
+
 	// Try to find IP pattern in node ID
 	parts := strings.Split(nodeID, "-")
 	for _, part := range parts {
@@ -127,7 +127,7 @@ func (d *DiscoveryService) extractIPFromNodeID(nodeID string) string {
 			return part
 		}
 	}
-	
+
 	return ""
 }
 
@@ -138,19 +138,19 @@ func (d *DiscoveryService) resolveNodeName(nodeName string) string {
 	if err != nil || len(ips) == 0 {
 		return ""
 	}
-	
+
 	// Return the first IPv4 address
 	for _, ip := range ips {
 		if ip.To4() != nil {
 			return ip.String()
 		}
 	}
-	
+
 	// Fallback to IPv6 if no IPv4 found
 	if len(ips) > 0 {
 		return ips[0].String()
 	}
-	
+
 	return ""
 }
 
@@ -162,13 +162,13 @@ func (d *DiscoveryService) checkGoProxLBService(nodeIP string) bool {
 
 	// Try to connect to the Raft port on the node
 	address := fmt.Sprintf("%s:%d", nodeIP, d.port)
-	
+
 	conn, err := net.DialTimeout("tcp", address, 2*time.Second)
 	if err != nil {
 		return false
 	}
 	defer conn.Close()
-	
+
 	return true
 }
 

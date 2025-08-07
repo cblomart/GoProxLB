@@ -262,7 +262,7 @@ func TestCalculateNodeScore(t *testing.T) {
 		},
 	}
 
-	score := balancer.calculateNodeScore(node)
+	score := balancer.calculateNodeScore(&node)
 
 	// The score is calculated as: (cpu*weight + memory*weight + storage*weight) / total_weight
 	// (0.5*1.0 + 0.5*1.0 + 0.5*0.5) / (1.0 + 1.0 + 0.5) = (0.5 + 0.5 + 0.25) / 2.5 = 1.25 / 2.5 = 0.5
@@ -344,7 +344,7 @@ func TestFindBestTargetNode(t *testing.T) {
 		{Node: "node3", Score: 20.0}, // Best target
 	}
 
-	target := balancer.findBestTargetNode(vm, nodeScores)
+	target := balancer.findBestTargetNode(&vm, nodeScores)
 
 	if target != "node2" {
 		t.Errorf("Expected best target to be node2, got %s", target)
@@ -367,7 +367,7 @@ func TestCalculateResourceGain(t *testing.T) {
 		{Node: "node2", Score: 30.0}, // Target (underloaded)
 	}
 
-	gain := balancer.calculateResourceGain(vm, "node1", "node2", nodeScores)
+	gain := balancer.calculateResourceGain(&vm, "node1", "node2", nodeScores)
 
 	if gain <= 0 {
 		t.Errorf("Expected positive resource gain, got %.2f", gain)
@@ -724,7 +724,7 @@ func TestAdvancedBalancerAntiFlipFlop(t *testing.T) {
 		Status: "running",
 	}
 
-	canMigrate := balancer.canMigrateVM(vm, "node2")
+	canMigrate := balancer.canMigrateVM(&vm, "node2")
 	if canMigrate {
 		t.Error("Expected VM with recent migration to be blocked from migrating")
 	}
@@ -793,7 +793,7 @@ func TestAdvancedBalancerResourceGainCalculation(t *testing.T) {
 	}
 
 	// Test resource gain calculation
-	gain := balancer.calculateResourceGain(vm, "node1", "node2", nodeScores)
+	gain := balancer.calculateResourceGain(&vm, "node1", "node2", nodeScores)
 	if gain <= 0 {
 		t.Errorf("Expected positive resource gain, got %f", gain)
 	}

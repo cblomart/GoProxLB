@@ -33,7 +33,7 @@ func (e *Engine) ProcessVMs(vms []models.VM) error {
 	e.ignoredVMs = make(map[int]*models.IgnoredVM)
 
 	for _, vm := range vms {
-		if err := e.processVM(vm); err != nil {
+		if err := e.processVM(&vm); err != nil {
 			return fmt.Errorf("failed to process VM %s: %w", vm.Name, err)
 		}
 	}
@@ -42,7 +42,7 @@ func (e *Engine) ProcessVMs(vms []models.VM) error {
 }
 
 // processVM processes a single VM and extracts its rules
-func (e *Engine) processVM(vm models.VM) error {
+func (e *Engine) processVM(vm *models.VM) error {
 	for _, tag := range vm.Tags {
 		tag = strings.TrimSpace(tag)
 
@@ -62,7 +62,7 @@ func (e *Engine) processVM(vm models.VM) error {
 }
 
 // addAffinityRule adds a VM to an affinity group
-func (e *Engine) addAffinityRule(vm models.VM, tag string) {
+func (e *Engine) addAffinityRule(vm *models.VM, tag string) {
 	groupName := strings.TrimPrefix(tag, "plb_affinity_")
 
 	if e.affinityGroups[groupName] == nil {
@@ -73,7 +73,7 @@ func (e *Engine) addAffinityRule(vm models.VM, tag string) {
 		}
 	}
 
-	e.affinityGroups[groupName].VMs = append(e.affinityGroups[groupName].VMs, vm)
+	e.affinityGroups[groupName].VMs = append(e.affinityGroups[groupName].VMs, *vm)
 
 	// Add node if not already present
 	nodeExists := false
@@ -89,7 +89,7 @@ func (e *Engine) addAffinityRule(vm models.VM, tag string) {
 }
 
 // addAntiAffinityRule adds a VM to an anti-affinity group
-func (e *Engine) addAntiAffinityRule(vm models.VM, tag string) {
+func (e *Engine) addAntiAffinityRule(vm *models.VM, tag string) {
 	groupName := strings.TrimPrefix(tag, "plb_anti_affinity_")
 
 	if e.antiAffinityGroups[groupName] == nil {
@@ -100,7 +100,7 @@ func (e *Engine) addAntiAffinityRule(vm models.VM, tag string) {
 		}
 	}
 
-	e.antiAffinityGroups[groupName].VMs = append(e.antiAffinityGroups[groupName].VMs, vm)
+	e.antiAffinityGroups[groupName].VMs = append(e.antiAffinityGroups[groupName].VMs, *vm)
 
 	// Add node if not already present
 	nodeExists := false
@@ -116,12 +116,12 @@ func (e *Engine) addAntiAffinityRule(vm models.VM, tag string) {
 }
 
 // addPinningRule adds a VM to the pinned VMs list
-func (e *Engine) addPinningRule(vm models.VM, tag string) {
+func (e *Engine) addPinningRule(vm *models.VM, tag string) {
 	nodeName := strings.TrimPrefix(tag, "plb_pin_")
 
 	if e.pinnedVMs[vm.ID] == nil {
 		e.pinnedVMs[vm.ID] = &models.PinnedVM{
-			VM:    vm,
+			VM:    *vm,
 			Nodes: []string{},
 		}
 	}
@@ -140,12 +140,12 @@ func (e *Engine) addPinningRule(vm models.VM, tag string) {
 }
 
 // addIgnoreRule adds a VM to the ignored VMs list
-func (e *Engine) addIgnoreRule(vm models.VM, tag string) {
+func (e *Engine) addIgnoreRule(vm *models.VM, tag string) {
 	ignoreTag := strings.TrimPrefix(tag, "plb_ignore_")
 
 	if e.ignoredVMs[vm.ID] == nil {
 		e.ignoredVMs[vm.ID] = &models.IgnoredVM{
-			VM:   vm,
+			VM:   *vm,
 			Tags: []string{},
 		}
 	}
@@ -194,7 +194,7 @@ func (e *Engine) GetIgnoredVMs() map[int]*models.IgnoredVM {
 }
 
 // ValidatePlacement validates if a VM can be placed on a specific node
-func (e *Engine) ValidatePlacement(vm models.VM, targetNode string) error {
+func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
 	// Check if VM is ignored
 	if e.IsIgnored(vm.ID) {
 		return fmt.Errorf("VM %s is ignored and cannot be moved", vm.Name)
@@ -266,7 +266,7 @@ func (e *Engine) ValidatePlacement(vm models.VM, targetNode string) error {
 }
 
 // GetValidTargetNodes returns all valid target nodes for a VM
-func (e *Engine) GetValidTargetNodes(vm models.VM, availableNodes []string) []string {
+func (e *Engine) GetValidTargetNodes(vm *models.VM, availableNodes []string) []string {
 	var validNodes []string
 
 	for _, node := range availableNodes {

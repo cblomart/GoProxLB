@@ -68,8 +68,8 @@ func (b *Balancer) Run(force bool) ([]models.BalancingResult, error) {
 
 	// Execute migrations
 	var results []models.BalancingResult
-	for _, migration := range migrations {
-		result := b.executeMigration(migration)
+	for i := range migrations {
+		result := b.executeMigration(&migrations[i])
 		results = append(results, result)
 	}
 
@@ -81,9 +81,10 @@ func (b *Balancer) Run(force bool) ([]models.BalancingResult, error) {
 func (b *Balancer) filterAvailableNodes(nodes []models.Node) []models.Node {
 	var available []models.Node
 
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		if !b.isInMaintenance(node.Name) {
-			available = append(available, node)
+			available = append(available, *node)
 		}
 	}
 
@@ -102,7 +103,8 @@ func (b *Balancer) isInMaintenance(nodeName string) bool {
 
 // needsBalancing checks if the cluster needs balancing
 func (b *Balancer) needsBalancing(nodes []models.Node) bool {
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		if b.isInMaintenance(node.Name) {
 			continue
 		}
@@ -121,7 +123,7 @@ func (b *Balancer) calculateNodeScores(nodes []models.Node) []models.NodeScore {
 	var scores []models.NodeScore
 
 	for _, node := range nodes {
-		score := b.calculateNodeScore(node)
+		score := b.calculateNodeScore(&node)
 		scores = append(scores, score)
 	}
 
@@ -134,7 +136,7 @@ func (b *Balancer) calculateNodeScores(nodes []models.Node) []models.NodeScore {
 }
 
 // calculateNodeScore calculates a score for a single node
-func (b *Balancer) calculateNodeScore(node models.Node) models.NodeScore {
+func (b *Balancer) calculateNodeScore(node *models.Node) models.NodeScore {
 	// Normalize resource usage (0-1 scale)
 	cpuScore := node.CPU.Usage / 100.0
 	memoryScore := node.Memory.Usage / 100.0
@@ -188,13 +190,13 @@ func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeS
 			}
 
 			// Find best target node
-			targetNode := b.findBestTargetNode(vm, nodeScores)
+			targetNode := b.findBestTargetNode(&vm, nodeScores)
 			if targetNode == "" {
 				continue
 			}
 
 			// Calculate resource gain
-			gain := b.calculateResourceGain(vm, sourceNode.Name, targetNode, nodeScores)
+			gain := b.calculateResourceGain(&vm, sourceNode.Name, targetNode, nodeScores)
 			if gain <= 0 {
 				continue
 			}
@@ -215,7 +217,7 @@ func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeS
 }
 
 // findBestTargetNode finds the best target node for a VM
-func (b *Balancer) findBestTargetNode(vm models.VM, nodeScores []models.NodeScore) string {
+func (b *Balancer) findBestTargetNode(vm *models.VM, nodeScores []models.NodeScore) string {
 	// Get valid target nodes
 	var validNodes []string
 	for _, score := range nodeScores {
@@ -243,7 +245,7 @@ func (b *Balancer) findBestTargetNode(vm models.VM, nodeScores []models.NodeScor
 }
 
 // calculateResourceGain calculates the resource gain from migrating a VM
-func (b *Balancer) calculateResourceGain(vm models.VM, sourceNode, targetNode string, nodeScores []models.NodeScore) float64 {
+func (b *Balancer) calculateResourceGain(vm *models.VM, sourceNode, targetNode string, nodeScores []models.NodeScore) float64 {
 	var sourceScore, targetScore models.NodeScore
 
 	// Find scores for source and target nodes
@@ -262,7 +264,7 @@ func (b *Balancer) calculateResourceGain(vm models.VM, sourceNode, targetNode st
 }
 
 // executeMigration executes a VM migration
-func (b *Balancer) executeMigration(migration models.Migration) models.BalancingResult {
+func (b *Balancer) executeMigration(migration *models.Migration) models.BalancingResult {
 	result := models.BalancingResult{
 		SourceNode: migration.FromNode,
 		TargetNode: migration.ToNode,
@@ -278,10 +280,10 @@ func (b *Balancer) executeMigration(migration models.Migration) models.Balancing
 		result.ErrorMessage = fmt.Sprintf("failed to get nodes for scoring: %v", err)
 		return result
 	}
-	
+
 	// Calculate resource gain
 	nodeScores := b.calculateNodeScores(currentNodes)
-	result.ResourceGain = b.calculateResourceGain(migration.VM, migration.FromNode, migration.ToNode, nodeScores)
+	result.ResourceGain = b.calculateResourceGain(&migration.VM, migration.FromNode, migration.ToNode, nodeScores)
 
 	// Execute migration
 	err = b.client.MigrateVM(migration.VM.ID, migration.FromNode, migration.ToNode)

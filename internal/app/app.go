@@ -884,7 +884,7 @@ func ShowRaftStatus(configPath string) error {
 func InstallService(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
-	
+
 	// Check if we're running as root (required for systemd installation)
 	if os.Geteuid() != 0 {
 		fmt.Println("⚠️  Warning: This command requires root privileges to install systemd services.")
@@ -893,7 +893,7 @@ func InstallService(user, group, configPath string, enableService bool) error {
 		fmt.Println()
 		return installServiceDryRun(user, group, configPath, enableService)
 	}
-	
+
 	// Determine executable path
 	execPath := os.Args[0]
 	if !filepath.IsAbs(execPath) {
@@ -902,7 +902,7 @@ func InstallService(user, group, configPath string, enableService bool) error {
 			execPath = absPath
 		}
 	}
-	
+
 	// Build service command
 	var serviceExec string
 	if configPath != "" {
@@ -950,7 +950,7 @@ WantedBy=multi-user.target
 		"/etc/goproxlb",
 		"/var/log/goproxlb",
 	}
-	
+
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
@@ -983,19 +983,19 @@ WantedBy=multi-user.target
 		if err := exec.Command("systemctl", "enable", serviceName).Run(); err != nil {
 			return fmt.Errorf("failed to enable service: %w", err)
 		}
-		
+
 		// Start service
 		if err := exec.Command("systemctl", "start", serviceName).Run(); err != nil {
 			return fmt.Errorf("failed to start service: %w", err)
 		}
-		
+
 		fmt.Printf("✅ Service enabled and started successfully.\n")
 	}
 
 	fmt.Printf("✅ Service file %s created successfully.\n", serviceFilePath)
 	fmt.Printf("✅ User '%s' and group '%s' created.\n", user, group)
 	fmt.Printf("✅ Directories created with proper permissions.\n")
-	
+
 	if !enableService {
 		fmt.Printf("\n📋 Next steps:\n")
 		fmt.Printf("1. Enable service: sudo systemctl enable %s\n", serviceName)
@@ -1016,7 +1016,7 @@ WantedBy=multi-user.target
 func installServiceDryRun(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
-	
+
 	// Determine executable path
 	execPath := os.Args[0]
 	if !filepath.IsAbs(execPath) {
@@ -1025,7 +1025,7 @@ func installServiceDryRun(user, group, configPath string, enableService bool) er
 			execPath = absPath
 		}
 	}
-	
+
 	// Build service command
 	var serviceExec string
 	if configPath != "" {
