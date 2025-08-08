@@ -78,7 +78,7 @@ jobs:
     - name: Run gosec security scanner
       uses: securego/gosec@master
       with:
-        args: '-fmt sarif -out results.sarif'
+        args: '-fmt sarif -out results.sarif ./...'
 
     - name: Check if SARIF file exists
       run: |
