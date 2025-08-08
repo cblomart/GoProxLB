@@ -764,12 +764,12 @@ func writeCSVFile(filename string, data [][]string) error {
 			cleanFilename = filepath.Join(wd, cleanFilename)
 		}
 	}
-	
+
 	// Ensure we're not trying to write outside allowed directories
 	if strings.Contains(cleanFilename, "..") {
 		return fmt.Errorf("invalid filename: path traversal not allowed")
 	}
-	
+
 	file, err := os.Create(cleanFilename)
 	if err != nil {
 		return err
