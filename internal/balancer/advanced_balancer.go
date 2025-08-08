@@ -182,8 +182,6 @@ func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM) *models.LoadProfile
 	}
 }
 
-
-
 // analyzeCPUPatternFromHistory analyzes CPU usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeCPUPatternFromHistory() models.CPUPattern {
 	// Simplified analysis without historical data
@@ -195,8 +193,6 @@ func (b *AdvancedBalancer) analyzeCPUPatternFromHistory() models.CPUPattern {
 		SustainedLevel: 90.0, // Placeholder, ideally calculated from data
 	}
 }
-
-
 
 // analyzeMemoryPatternFromHistory analyzes memory usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory() models.MemoryPattern {
@@ -211,8 +207,6 @@ func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory() models.MemoryPatter
 		PeakUsage: 90.0, // Placeholder, ideally calculated from data
 	}
 }
-
-
 
 // analyzeStoragePatternFromHistory analyzes storage usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeStoragePatternFromHistory() models.StoragePattern {
@@ -628,19 +622,19 @@ func (b *AdvancedBalancer) findOptimalMigrations(nodes []models.Node, nodeScores
 	// Pre-allocate slice with reasonable capacity to reduce allocations
 	migrations := make([]models.Migration, 0, 5) // Most clusters won't need more than 5 migrations
 
-	// Pre-calculate thresholds as integers for faster comparison
-	cpuThreshold := int(b.config.Balancing.Thresholds.CPU) //nolint:unconvert
-	memoryThreshold := int(b.config.Balancing.Thresholds.Memory) //nolint:unconvert
-	storageThreshold := int(b.config.Balancing.Thresholds.Storage) //nolint:unconvert
+	// Pre-calculate thresholds as float32 for consistent comparison
+	cpuThreshold := float32(b.config.Balancing.Thresholds.CPU)
+	memoryThreshold := float32(b.config.Balancing.Thresholds.Memory)
+	storageThreshold := float32(b.config.Balancing.Thresholds.Storage)
 
 	// Find overloaded nodes (optimized loop)
 	overloadedNodes := make([]models.Node, 0, len(nodes)/2) // Pre-allocate with reasonable capacity
 	for i := range nodes {
 		node := &nodes[i]
-		// Use integer comparisons for better performance
-		if int(node.CPU.Usage) > cpuThreshold ||
-			int(node.Memory.Usage) > memoryThreshold ||
-			int(node.Storage.Usage) > storageThreshold {
+		// Use float32 comparisons for better precision
+		if node.CPU.Usage > cpuThreshold ||
+			node.Memory.Usage > memoryThreshold ||
+			node.Storage.Usage > storageThreshold {
 			overloadedNodes = append(overloadedNodes, *node)
 		}
 	}
@@ -1116,8 +1110,9 @@ func (b *AdvancedBalancer) GetClusterRecommendations(forecastDuration time.Durat
 	}
 
 	// Resource distribution recommendations
-	recommendations = append(recommendations, "📊 Monitor resource distribution across nodes for optimal balance")
-	recommendations = append(recommendations, "🔄 Regular capacity planning reviews recommended")
+	recommendations = append(recommendations, 
+		"📊 Monitor resource distribution across nodes for optimal balance",
+		"🔄 Regular capacity planning reviews recommended")
 
 	// Forecast-specific recommendations
 	weeks := forecastDuration.Hours() / (7 * 24)

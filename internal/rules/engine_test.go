@@ -50,10 +50,8 @@ func TestProcessVMs(t *testing.T) {
 	webGroup, exists := affinityGroups["web"]
 	if !exists {
 		t.Error("Expected affinity group 'web' not found")
-	} else {
-		if len(webGroup.VMs) != 2 {
-			t.Errorf("Expected 2 VMs in web affinity group, got %d", len(webGroup.VMs))
-		}
+	} else if len(webGroup.VMs) != 2 {
+		t.Errorf("Expected 2 VMs in web affinity group, got %d", len(webGroup.VMs))
 	}
 
 	// Test anti-affinity groups
@@ -65,10 +63,8 @@ func TestProcessVMs(t *testing.T) {
 	ntpGroup, exists := antiAffinityGroups["ntp"]
 	if !exists {
 		t.Error("Expected anti-affinity group 'ntp' not found")
-	} else {
-		if len(ntpGroup.VMs) != 2 {
-			t.Errorf("Expected 2 VMs in ntp anti-affinity group, got %d", len(ntpGroup.VMs))
-		}
+	} else if len(ntpGroup.VMs) != 2 {
+		t.Errorf("Expected 2 VMs in ntp anti-affinity group, got %d", len(ntpGroup.VMs))
 	}
 
 	// Test pinned VMs

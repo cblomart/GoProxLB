@@ -196,7 +196,7 @@ func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeS
 			}
 
 			// Calculate resource gain
-							gain := b.calculateResourceGain(sourceNode.Name, targetNode, nodeScores)
+			gain := b.calculateResourceGain(sourceNode.Name, targetNode, nodeScores)
 			if gain <= 0 {
 				continue
 			}

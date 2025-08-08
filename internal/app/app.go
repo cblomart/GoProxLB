@@ -673,7 +673,7 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csv
 					// Add priority adjustments
 					if vmProfile.Criticality == "Critical" {
 						recommendedCPU = int(float64(recommendedCPU) * 1.2) // 20% more for critical
-						recommendedMemoryGB = recommendedMemoryGB * 1.2     // 20% more for critical
+						recommendedMemoryGB *= 1.2     // 20% more for critical
 					}
 
 					// Only add recommendation if there's a significant difference

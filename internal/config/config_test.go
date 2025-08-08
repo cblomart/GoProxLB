@@ -42,7 +42,7 @@ logging:
 	}
 	defer os.Remove(tmpfile.Name())
 
-	if _, err := tmpfile.Write([]byte(configContent)); err != nil {
+	if _, err := tmpfile.WriteString(configContent); err != nil {
 		t.Fatal(err)
 	}
 	if err := tmpfile.Close(); err != nil {
@@ -112,7 +112,7 @@ cluster:
 	}
 	defer os.Remove(tmpfile.Name())
 
-	if _, err := tmpfile.Write([]byte(configContent)); err != nil {
+	if _, err := tmpfile.WriteString(configContent); err != nil {
 		t.Fatal(err)
 	}
 	if err := tmpfile.Close(); err != nil {
