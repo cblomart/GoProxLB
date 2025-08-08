@@ -1110,7 +1110,7 @@ func (b *AdvancedBalancer) GetClusterRecommendations(forecastDuration time.Durat
 	}
 
 	// Resource distribution recommendations
-	recommendations = append(recommendations, 
+	recommendations = append(recommendations,
 		"📊 Monitor resource distribution across nodes for optimal balance",
 		"🔄 Regular capacity planning reviews recommended")
 

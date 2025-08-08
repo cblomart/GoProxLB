@@ -1,6 +1,7 @@
 package proxmox
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -417,7 +418,7 @@ type HistoricalMetric struct {
 // request makes an HTTP request to the Proxmox API.
 func (c *Client) request(method, path string, body io.Reader) (*http.Response, error) {
 	url := c.host + path
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(context.Background(), method, url, body)
 	if err != nil {
 		return nil, err
 	}
