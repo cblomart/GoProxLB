@@ -488,7 +488,9 @@ func ForceBalanceWithBalancerType(configPath string, force bool, balancerType st
 }
 
 // ShowCapacityPlanning shows detailed capacity planning information.
-func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csvOutput string) error {
+//
+//nolint:gocyclo // Complex capacity planning display logic with multiple output formats
+func ShowCapacityPlanning(configPath string, detailed bool, forecast, csvOutput string) error {
 	// Load configuration
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -643,7 +645,7 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csv
 			workloadGroups := make(map[string][]models.VM)
 			for j := range node.VMs {
 				vm := &node.VMs[j]
-				vmProfile := balancer.AnalyzeVMProfile(*vm, node.Name)
+				vmProfile := balancer.AnalyzeVMProfile(vm, node.Name)
 				workloadType := vmProfile.WorkloadType
 				workloadGroups[workloadType] = append(workloadGroups[workloadType], *vm)
 			}
@@ -653,7 +655,7 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csv
 				fmt.Printf("     %s (%d VMs):\n", workloadType, len(vms))
 				for k := range vms {
 					vm := &vms[k]
-					vmProfile := balancer.AnalyzeVMProfile(*vm, node.Name)
+					vmProfile := balancer.AnalyzeVMProfile(vm, node.Name)
 					fmt.Printf("       🖥️  %s (ID: %d) - %s\n", vm.Name, vm.ID, vm.Status)
 
 					// Generate VM-specific adaptation recommendations

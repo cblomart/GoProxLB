@@ -953,7 +953,9 @@ type VMProfile struct {
 }
 
 // AnalyzeVMProfile analyzes a VM's workload profile and provides recommendations.
-func (b *AdvancedBalancer) AnalyzeVMProfile(vm models.VM, nodeName string) VMProfile {
+//
+//nolint:gocyclo // Complex VM profile analysis logic with multiple metrics
+func (b *AdvancedBalancer) AnalyzeVMProfile(vm *models.VM, nodeName string) VMProfile {
 	profile := VMProfile{
 		WorkloadType: "Unknown",
 		Pattern:      "Unknown",

@@ -188,6 +188,8 @@ func (e *Engine) GetIgnoredVMs() map[int]*models.IgnoredVM {
 }
 
 // ValidatePlacement validates if a VM can be placed on a specific node.
+//
+//nolint:gocyclo // Complex VM placement validation logic with multiple rule checks
 func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
 	// Check if VM is ignored
 	if e.IsIgnored(vm.ID) {

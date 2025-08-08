@@ -189,6 +189,8 @@ func setDefaults() {
 }
 
 // validateConfig validates the configuration.
+//
+//nolint:gocyclo // Complex configuration validation logic with multiple checks
 func validateConfig(config *Config) error {
 	// Validate Proxmox configuration
 	if config.Proxmox.Host == "" {

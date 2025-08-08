@@ -35,7 +35,9 @@ func NewDistributedApp(configPath string) (*DistributedApp, error) {
 }
 
 // NewDistributedAppWithSocketDir creates a new distributed load balancer application with custom socket directory.
-func NewDistributedAppWithSocketDir(configPath string, socketDir string) (*DistributedApp, error) {
+//
+//nolint:gocyclo // Complex distributed app initialization with multiple setup steps
+func NewDistributedAppWithSocketDir(configPath, socketDir string) (*DistributedApp, error) {
 	// Load configuration
 	config, err := config.Load(configPath)
 	if err != nil {
