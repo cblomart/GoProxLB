@@ -182,52 +182,7 @@ func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM) *models.LoadProfile
 	}
 }
 
-// analyzeLoadProfileSimplified provides simplified analysis when historical data is not available.
-func (b *AdvancedBalancer) analyzeLoadProfileSimplified(vm *models.VM) *models.LoadProfile {
-	// Determine CPU pattern
-	cpuPattern := b.analyzeCPUPattern(vm)
 
-	// Determine memory pattern
-	memoryPattern := b.analyzeMemoryPattern(vm)
-
-	// Determine storage pattern
-	storagePattern := b.analyzeStoragePattern()
-
-	// Determine priority based on tags and usage
-	priority := b.determinePriority(vm, cpuPattern)
-
-	// Determine criticality
-	criticality := b.determineCriticality(vm, priority)
-
-	return &models.LoadProfile{
-		CPUPattern:     cpuPattern,
-		MemoryPattern:  memoryPattern,
-		StoragePattern: storagePattern,
-		Priority:       priority,
-		Criticality:    criticality,
-	}
-}
-
-// analyzeCPUPattern analyzes CPU usage patterns.
-func (b *AdvancedBalancer) analyzeCPUPattern(vm *models.VM) models.CPUPattern {
-	// Simplified analysis - in reality, you'd analyze historical data
-	if vm.CPU > 80.0 {
-		return models.CPUPattern{
-			Type:           "sustained",
-			SustainedLevel: vm.CPU,
-		}
-	} else if vm.CPU > 50.0 {
-		return models.CPUPattern{
-			Type:           "burst",
-			BurstDuration:  300.0, // 5 minutes
-			BurstFrequency: 2.0,   // 2 bursts per hour
-		}
-	} else {
-		return models.CPUPattern{
-			Type: "idle",
-		}
-	}
-}
 
 // analyzeCPUPatternFromHistory analyzes CPU usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeCPUPatternFromHistory() models.CPUPattern {
@@ -241,15 +196,7 @@ func (b *AdvancedBalancer) analyzeCPUPatternFromHistory() models.CPUPattern {
 	}
 }
 
-// analyzeMemoryPattern analyzes memory usage patterns.
-func (b *AdvancedBalancer) analyzeMemoryPattern(vm *models.VM) models.MemoryPattern {
-	// Simplified analysis
-	return models.MemoryPattern{
-		Type:       "static",
-		Volatility: 5.0,    // 5% variation
-		PeakUsage:  vm.CPU, // Use CPU as proxy for memory usage
-	}
-}
+
 
 // analyzeMemoryPatternFromHistory analyzes memory usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory() models.MemoryPattern {
@@ -265,17 +212,7 @@ func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory() models.MemoryPatter
 	}
 }
 
-// analyzeStoragePattern analyzes storage usage patterns.
-func (b *AdvancedBalancer) analyzeStoragePattern() models.StoragePattern {
-	// Simplified analysis
-	return models.StoragePattern{
-		Type:         "mixed",
-		ReadIOPs:     1000,
-		WriteIOPs:    500,
-		ReadLatency:  5.0,
-		WriteLatency: 10.0,
-	}
-}
+
 
 // analyzeStoragePatternFromHistory analyzes storage usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeStoragePatternFromHistory() models.StoragePattern {
@@ -692,9 +629,9 @@ func (b *AdvancedBalancer) findOptimalMigrations(nodes []models.Node, nodeScores
 	migrations := make([]models.Migration, 0, 5) // Most clusters won't need more than 5 migrations
 
 	// Pre-calculate thresholds as integers for faster comparison
-	cpuThreshold := int(b.config.Balancing.Thresholds.CPU)
-	memoryThreshold := int(b.config.Balancing.Thresholds.Memory)
-	storageThreshold := int(b.config.Balancing.Thresholds.Storage)
+	cpuThreshold := int(b.config.Balancing.Thresholds.CPU) //nolint:unconvert
+	memoryThreshold := int(b.config.Balancing.Thresholds.Memory) //nolint:unconvert
+	storageThreshold := int(b.config.Balancing.Thresholds.Storage) //nolint:unconvert
 
 	// Find overloaded nodes (optimized loop)
 	overloadedNodes := make([]models.Node, 0, len(nodes)/2) // Pre-allocate with reasonable capacity
