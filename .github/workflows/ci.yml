@@ -77,6 +77,7 @@ jobs:
 
     - name: Run gosec security scanner
       uses: securego/gosec@master
+      continue-on-error: true
       with:
         args: '-fmt sarif -out results.sarif ./...'
 
@@ -99,6 +100,21 @@ jobs:
         sarif_file: results.sarif
         checkout_path: ${{ github.workspace }}
         wait-for-processing: true
+
+    - name: Check for security vulnerabilities
+      run: |
+        if [ -f results.sarif ]; then
+          # Check if SARIF file contains any results (vulnerabilities found)
+          if grep -q '"results":\s*\[[^]]*[^]]' results.sarif; then
+            echo "❌ Security vulnerabilities found! Check the SARIF results above."
+            exit 1
+          else
+            echo "✅ No security vulnerabilities found."
+          fi
+        else
+          echo "❌ SARIF file not found. Security scan may have failed."
+          exit 1
+        fi
 
     - name: Run govulncheck
       run: |
