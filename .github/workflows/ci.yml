@@ -143,17 +143,17 @@ jobs:
     - name: Check cyclomatic complexity
       run: |
         echo "Checking cyclomatic complexity..."
-        gocyclo -over 15 ./internal/ || echo "High complexity functions found"
+        gocyclo -over 15 ./internal/
         echo "Complexity check completed"
 
     - name: Run staticcheck
-      run: staticcheck ./... || echo "Staticcheck completed with warnings"
+      run: staticcheck ./...
 
     - name: Check for ineffectual assignments
       run: echo "Ineffassign check skipped - tool not available in Go 1.22"
 
     - name: Check for unchecked errors
-      run: errcheck ./... || echo "Errcheck completed with warnings"
+      run: errcheck ./...
 
     - name: Check for unused code
       run: |
