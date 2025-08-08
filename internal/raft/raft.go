@@ -27,7 +27,7 @@ type RaftNode struct {
 // NewRaftNode creates a new Raft node for leader election.
 func NewRaftNode(nodeID, address, dataDir string, peers []string) (*RaftNode, error) {
 	// Create data directory if it doesn't exist
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
+	if err := os.MkdirAll(dataDir, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 

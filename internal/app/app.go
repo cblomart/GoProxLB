@@ -756,7 +756,21 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast, csvOutput 
 
 // writeCSVFile writes the CSV data to a file.
 func writeCSVFile(filename string, data [][]string) error {
-	file, err := os.Create(filename)
+	// Validate filename to prevent path traversal attacks
+	cleanFilename := filepath.Clean(filename)
+	if !filepath.IsAbs(cleanFilename) {
+		// If relative path, make it relative to current working directory
+		if wd, err := os.Getwd(); err == nil {
+			cleanFilename = filepath.Join(wd, cleanFilename)
+		}
+	}
+	
+	// Ensure we're not trying to write outside allowed directories
+	if strings.Contains(cleanFilename, "..") {
+		return fmt.Errorf("invalid filename: path traversal not allowed")
+	}
+	
+	file, err := os.Create(cleanFilename)
 	if err != nil {
 		return err
 	}
@@ -969,7 +983,7 @@ WantedBy=multi-user.target
 	}
 
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}

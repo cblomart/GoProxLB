@@ -126,10 +126,10 @@ func NewDistributedAppWithSocketDir(configPath, socketDir string) (*DistributedA
 	socketPath := socketDir + "/status.sock"
 
 	// Remove existing socket file if it exists
-	os.Remove(socketPath)
+	_ = os.Remove(socketPath) // Ignore error if file doesn't exist
 
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(socketDir, 0755); err != nil {
+	if err := os.MkdirAll(socketDir, 0750); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to create socket directory: %w", err)
 	}
@@ -143,7 +143,7 @@ func NewDistributedAppWithSocketDir(configPath, socketDir string) (*DistributedA
 	}
 
 	// Set socket permissions
-	if err := os.Chmod(socketPath, 0666); err != nil {
+	if err := os.Chmod(socketPath, 0600); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to set socket permissions: %w", err)
 	}
@@ -238,9 +238,9 @@ func (d *DistributedApp) Stop() error {
 
 	// Close Unix socket gracefully
 	if d.listener != nil {
-		d.listener.Close()
+		_ = d.listener.Close() // Ignore error on close
 		// Remove socket file
-		os.Remove("/var/lib/goproxlb/status.sock")
+		_ = os.Remove("/var/lib/goproxlb/status.sock") // Ignore error if file doesn't exist
 	}
 
 	return d.raftNode.Stop()
