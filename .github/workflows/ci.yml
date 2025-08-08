@@ -76,12 +76,9 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Run gosec security scanner
-      run: |
-        echo "Installing gosec..."
-        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-        echo "Running gosec..."
-        gosec -fmt sarif -out results.sarif ./...
-        echo "Security scan completed"
+      uses: securego/gosec@master
+      with:
+        args: '-fmt sarif -out results.sarif'
 
     - name: Check if SARIF file exists
       run: |
