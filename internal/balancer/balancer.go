@@ -46,7 +46,8 @@ func (b *Balancer) Run(force bool) ([]models.BalancingResult, error) {
 
 	// Collect all VMs
 	var allVMs []models.VM
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		allVMs = append(allVMs, node.VMs...)
 	}
 
@@ -122,8 +123,9 @@ func (b *Balancer) needsBalancing(nodes []models.Node) bool {
 func (b *Balancer) calculateNodeScores(nodes []models.Node) []models.NodeScore {
 	var scores []models.NodeScore
 
-	for _, node := range nodes {
-		score := b.calculateNodeScore(&node)
+	for i := range nodes {
+		node := &nodes[i]
+		score := b.calculateNodeScore(node)
 		scores = append(scores, score)
 	}
 
@@ -169,7 +171,8 @@ func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeS
 
 	// Find overloaded nodes (source nodes)
 	var sourceNodes []models.Node
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		if b.isInMaintenance(node.Name) {
 			continue
 		}
@@ -177,20 +180,22 @@ func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeS
 		if node.CPU.Usage > float32(b.config.Balancing.Thresholds.CPU) ||
 			node.Memory.Usage > float32(b.config.Balancing.Thresholds.Memory) ||
 			node.Storage.Usage > float32(b.config.Balancing.Thresholds.Storage) {
-			sourceNodes = append(sourceNodes, node)
+			sourceNodes = append(sourceNodes, *node)
 		}
 	}
 
 	// For each overloaded node, find VMs to migrate
-	for _, sourceNode := range sourceNodes {
-		for _, vm := range sourceNode.VMs {
+	for i := range sourceNodes {
+		sourceNode := &sourceNodes[i]
+		for j := range sourceNode.VMs {
+			vm := &sourceNode.VMs[j]
 			// Skip ignored VMs
 			if b.engine.IsIgnored(vm.ID) {
 				continue
 			}
 
 			// Find best target node
-			targetNode := b.findBestTargetNode(&vm, nodeScores)
+			targetNode := b.findBestTargetNode(vm, nodeScores)
 			if targetNode == "" {
 				continue
 			}
@@ -202,7 +207,7 @@ func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeS
 			}
 
 			migration := models.Migration{
-				VM:        vm,
+				VM:        *vm,
 				FromNode:  sourceNode.Name,
 				ToNode:    targetNode,
 				Status:    "pending",
@@ -318,7 +323,8 @@ func (b *Balancer) GetClusterStatus() (*models.ClusterStatus, error) {
 	var totalCPU, totalMemory, totalStorage float64
 	var activeNodeCount int
 
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		if !b.isInMaintenance(node.Name) {
 			status.ActiveNodes++
 			activeNodeCount++
@@ -328,7 +334,8 @@ func (b *Balancer) GetClusterStatus() (*models.ClusterStatus, error) {
 		}
 
 		status.TotalVMs += len(node.VMs)
-		for _, vm := range node.VMs {
+		for j := range node.VMs {
+			vm := &node.VMs[j]
 			if vm.Status == "running" {
 				status.RunningVMs++
 			}
