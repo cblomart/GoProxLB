@@ -1,6 +1,9 @@
 run:
   timeout: 5m
   go: "1.23"
+  modules-download-mode: readonly
+  exclude-dirs:
+    - .github
 
 linters:
   enable:
@@ -38,7 +41,6 @@ linters-settings:
   goconst:
     min-len: 3
     min-occurrences: 3
-
   gocritic:
     enabled-tags:
       - diagnostic
@@ -74,3 +76,4 @@ issues:
 
   max-issues-per-linter: 0
   max-same-issues: 0
+
