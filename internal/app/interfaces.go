@@ -6,13 +6,13 @@ import (
 	"github.com/cblomart/GoProxLB/internal/proxmox"
 )
 
-// BalancerInterface defines the interface for load balancer operations
+// BalancerInterface defines the interface for load balancer operations.
 type BalancerInterface interface {
 	Run(force bool) ([]models.BalancingResult, error)
 	GetClusterStatus() (*models.ClusterStatus, error)
 }
 
-// ClientInterface defines the interface for Proxmox API operations
+// ClientInterface defines the interface for Proxmox API operations.
 type ClientInterface interface {
 	GetClusterInfo() (*models.Cluster, error)
 	GetNodes() ([]models.Node, error)
@@ -21,7 +21,7 @@ type ClientInterface interface {
 	GetVMHistoricalData(nodeName string, vmID int, vmType string, timeframe string) ([]proxmox.HistoricalMetric, error)
 }
 
-// ConfigLoaderInterface defines the interface for configuration loading
+// ConfigLoaderInterface defines the interface for configuration loading.
 type ConfigLoaderInterface interface {
 	Load(configPath string) (*config.Config, error)
 }

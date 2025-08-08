@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Node represents a Proxmox node
+// Node represents a Proxmox node.
 type Node struct {
 	Name          string      `json:"name"`
 	Status        string      `json:"status"`
@@ -15,7 +15,7 @@ type Node struct {
 	InMaintenance bool        `json:"in_maintenance"`
 }
 
-// VM represents a virtual machine or container
+// VM represents a virtual machine or container.
 type VM struct {
 	ID        int       `json:"id"`
 	Name      string    `json:"name"`
@@ -31,7 +31,7 @@ type VM struct {
 	LoadProfile *LoadProfile `json:"load_profile,omitempty"`
 }
 
-// CPUInfo represents CPU information
+// CPUInfo represents CPU information.
 type CPUInfo struct {
 	Usage   float32 `json:"usage"` // Percentage
 	Cores   int     `json:"cores"`
@@ -39,7 +39,7 @@ type CPUInfo struct {
 	LoadAvg float32 `json:"load_avg"`
 }
 
-// MemoryInfo represents memory information
+// MemoryInfo represents memory information.
 type MemoryInfo struct {
 	Total     int64   `json:"total"`     // Bytes
 	Used      int64   `json:"used"`      // Bytes
@@ -47,7 +47,7 @@ type MemoryInfo struct {
 	Usage     float32 `json:"usage"`     // Percentage
 }
 
-// StorageInfo represents storage information
+// StorageInfo represents storage information.
 type StorageInfo struct {
 	Total int64   `json:"total"` // Bytes
 	Used  int64   `json:"used"`  // Bytes
@@ -55,7 +55,7 @@ type StorageInfo struct {
 	Usage float32 `json:"usage"` // Percentage
 }
 
-// Cluster represents cluster information
+// Cluster represents cluster information.
 type Cluster struct {
 	Name    string `json:"name"`
 	Nodes   []Node `json:"nodes"`
@@ -63,7 +63,7 @@ type Cluster struct {
 	Version string `json:"version"`
 }
 
-// BalancingResult represents the result of a balancing operation
+// BalancingResult represents the result of a balancing operation.
 type BalancingResult struct {
 	SourceNode   string    `json:"source_node"`
 	TargetNode   string    `json:"target_node"`
@@ -75,7 +75,7 @@ type BalancingResult struct {
 	ErrorMessage string    `json:"error_message,omitempty"`
 }
 
-// NodeScore represents a node's score for VM placement
+// NodeScore represents a node's score for VM placement.
 type NodeScore struct {
 	Node    string  `json:"node"`
 	Score   float64 `json:"score"`
@@ -84,33 +84,33 @@ type NodeScore struct {
 	Storage float32 `json:"storage"`
 }
 
-// AffinityGroup represents a group of VMs that should be kept together
+// AffinityGroup represents a group of VMs that should be kept together.
 type AffinityGroup struct {
 	Tag   string   `json:"tag"`
 	VMs   []VM     `json:"vms"`
 	Nodes []string `json:"nodes"`
 }
 
-// AntiAffinityGroup represents a group of VMs that should be distributed
+// AntiAffinityGroup represents a group of VMs that should be distributed.
 type AntiAffinityGroup struct {
 	Tag   string   `json:"tag"`
 	VMs   []VM     `json:"vms"`
 	Nodes []string `json:"nodes"`
 }
 
-// PinnedVM represents a VM pinned to specific nodes
+// PinnedVM represents a VM pinned to specific nodes.
 type PinnedVM struct {
 	VM    VM       `json:"vm"`
 	Nodes []string `json:"nodes"`
 }
 
-// IgnoredVM represents a VM that should be ignored by the balancer
+// IgnoredVM represents a VM that should be ignored by the balancer.
 type IgnoredVM struct {
 	VM   VM       `json:"vm"`
 	Tags []string `json:"tags"`
 }
 
-// ClusterStatus represents the overall status of the cluster
+// ClusterStatus represents the overall status of the cluster.
 type ClusterStatus struct {
 	TotalNodes       int       `json:"total_nodes"`
 	ActiveNodes      int       `json:"active_nodes"`
@@ -123,7 +123,7 @@ type ClusterStatus struct {
 	BalancingEnabled bool      `json:"balancing_enabled"`
 }
 
-// Migration represents a VM migration operation
+// Migration represents a VM migration operation.
 type Migration struct {
 	VM        VM         `json:"vm"`
 	FromNode  string     `json:"from_node"`
@@ -134,7 +134,7 @@ type Migration struct {
 	Error     string     `json:"error,omitempty"`
 }
 
-// LoadProfile represents the load characteristics of a VM
+// LoadProfile represents the load characteristics of a VM.
 type LoadProfile struct {
 	// Mandatory parameters
 	CPUPattern     CPUPattern     `json:"cpu_pattern"`
@@ -150,7 +150,7 @@ type LoadProfile struct {
 	Dependencies   []string        `json:"dependencies,omitempty"`
 }
 
-// CPUPattern represents CPU usage patterns
+// CPUPattern represents CPU usage patterns.
 type CPUPattern struct {
 	Type           string  `json:"type"`            // burst, sustained, idle
 	BurstDuration  float32 `json:"burst_duration"`  // seconds
@@ -158,7 +158,7 @@ type CPUPattern struct {
 	SustainedLevel float32 `json:"sustained_level"` // percentage
 }
 
-// MemoryPattern represents memory usage patterns
+// MemoryPattern represents memory usage patterns.
 type MemoryPattern struct {
 	Type       string  `json:"type"`        // static, growing, volatile
 	GrowthRate float32 `json:"growth_rate"` // MB/hour
@@ -166,7 +166,7 @@ type MemoryPattern struct {
 	PeakUsage  float32 `json:"peak_usage"`  // percentage
 }
 
-// StoragePattern represents storage usage patterns
+// StoragePattern represents storage usage patterns.
 type StoragePattern struct {
 	Type         string  `json:"type"`          // read-heavy, write-heavy, mixed
 	ReadIOPs     int64   `json:"read_iops"`     // IOPS
@@ -175,20 +175,20 @@ type StoragePattern struct {
 	WriteLatency float32 `json:"write_latency"` // ms
 }
 
-// NetworkPattern represents network usage patterns
+// NetworkPattern represents network usage patterns.
 type NetworkPattern struct {
 	Bandwidth  float32 `json:"bandwidth"`   // Mbps
 	Latency    float32 `json:"latency"`     // ms
 	PacketLoss float32 `json:"packet_loss"` // percentage
 }
 
-// Predictability represents workload predictability
+// Predictability represents workload predictability.
 type Predictability struct {
 	Score      float32 `json:"score"`      // 0-1, higher = more predictable
 	Confidence float32 `json:"confidence"` // 0-1, confidence in prediction
 }
 
-// Seasonality represents workload seasonality
+// Seasonality represents workload seasonality.
 type Seasonality struct {
 	Type      string `json:"type"`       // daily, weekly, monthly, none
 	PeakTime  string `json:"peak_time"`  // HH:MM format
@@ -196,7 +196,7 @@ type Seasonality struct {
 	PeakMonth string `json:"peak_month"` // month
 }
 
-// Priority represents VM priority levels
+// Priority represents VM priority levels.
 type Priority string
 
 const (
@@ -205,7 +205,7 @@ const (
 	PriorityBackground  Priority = "background"
 )
 
-// Criticality represents VM criticality levels
+// Criticality represents VM criticality levels.
 type Criticality string
 
 const (
@@ -214,7 +214,7 @@ const (
 	CriticalityNormal    Criticality = "normal"
 )
 
-// ResourceIntensity represents resource usage intensity
+// ResourceIntensity represents resource usage intensity.
 type ResourceIntensity struct {
 	CPUIntensive     bool    `json:"cpu_intensive"`
 	MemoryIntensive  bool    `json:"memory_intensive"`
@@ -223,13 +223,13 @@ type ResourceIntensity struct {
 	Score            float32 `json:"score"` // 0-1, overall intensity
 }
 
-// PercentileRange represents P90 min/max range
+// PercentileRange represents P90 min/max range.
 type PercentileRange struct {
 	MinP90 float32 `json:"min_p90"` // 10th percentile (ascending)
 	MaxP90 float32 `json:"max_p90"` // 90th percentile (descending)
 }
 
-// CapacityMetrics represents capacity planning metrics
+// CapacityMetrics represents capacity planning metrics.
 type CapacityMetrics struct {
 	P50    float32 `json:"p50"`     // Median
 	P90    float32 `json:"p90"`     // 90th percentile
@@ -241,7 +241,7 @@ type CapacityMetrics struct {
 	StdDev float32 `json:"std_dev"`
 }
 
-// TrendAnalysis represents trend analysis results
+// TrendAnalysis represents trend analysis results.
 type TrendAnalysis struct {
 	Slope      float32 `json:"slope"`      // Trend slope
 	Intercept  float32 `json:"intercept"`  // Y-intercept
@@ -250,7 +250,7 @@ type TrendAnalysis struct {
 	Trend      string  `json:"trend"`      // increasing, decreasing, stable
 }
 
-// MigrationHistory represents migration history for anti-flip-flop
+// MigrationHistory represents migration history for anti-flip-flop.
 type MigrationHistory struct {
 	VMID      int       `json:"vmid"`
 	FromNode  string    `json:"from_node"`
@@ -259,7 +259,7 @@ type MigrationHistory struct {
 	Reason    string    `json:"reason"`
 }
 
-// MigrationPlan represents an optimized migration plan
+// MigrationPlan represents an optimized migration plan.
 type MigrationPlan struct {
 	Migrations []Migration `json:"migrations"`
 	TotalGain  float64     `json:"total_gain"`
@@ -267,14 +267,14 @@ type MigrationPlan struct {
 	NetBenefit float64     `json:"net_benefit"`
 }
 
-// ResourceReservation represents resource reservations
+// ResourceReservation represents resource reservations.
 type ResourceReservation struct {
 	CPU     float32 `json:"cpu"`
 	Memory  float32 `json:"memory"`
 	Storage float32 `json:"storage"`
 }
 
-// PlacementStrategy represents VM placement strategy
+// PlacementStrategy represents VM placement strategy.
 type PlacementStrategy struct {
 	RealtimeNodes     []string           `json:"realtime_nodes"`
 	InteractiveNodes  []string           `json:"interactive_nodes"`

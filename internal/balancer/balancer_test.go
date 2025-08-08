@@ -10,7 +10,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/proxmox"
 )
 
-// Mock client for testing
+// Mock client for testing.
 type mockClient struct {
 	nodes []models.Node
 	err   error
@@ -40,7 +40,7 @@ func (m *mockClient) GetVMHistoricalData(nodeName string, vmID int, vmType, time
 	return m.vmHistoricalData[fmt.Sprintf("%s-%d-%s-%s", nodeName, vmID, vmType, timeframe)], m.err
 }
 
-// Helper function to create test nodes
+// Helper function to create test nodes.
 func createTestNodes() []models.Node {
 	return []models.Node{
 		{
@@ -126,7 +126,7 @@ func createTestNodes() []models.Node {
 	}
 }
 
-// Helper function to create test config
+// Helper function to create test config.
 func createTestConfig() *config.Config {
 	return &config.Config{
 		Proxmox: config.ProxmoxConfig{

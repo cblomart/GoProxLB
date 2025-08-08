@@ -17,7 +17,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/raft"
 )
 
-// DistributedApp represents a distributed load balancer application with leader election
+// DistributedApp represents a distributed load balancer application with leader election.
 type DistributedApp struct {
 	config   *config.Config
 	client   ClientInterface
@@ -29,12 +29,12 @@ type DistributedApp struct {
 	listener *net.UnixListener
 }
 
-// NewDistributedApp creates a new distributed load balancer application
+// NewDistributedApp creates a new distributed load balancer application.
 func NewDistributedApp(configPath string) (*DistributedApp, error) {
 	return NewDistributedAppWithSocketDir(configPath, "")
 }
 
-// NewDistributedAppWithSocketDir creates a new distributed load balancer application with custom socket directory
+// NewDistributedAppWithSocketDir creates a new distributed load balancer application with custom socket directory.
 func NewDistributedAppWithSocketDir(configPath string, socketDir string) (*DistributedApp, error) {
 	// Load configuration
 	config, err := config.Load(configPath)
@@ -160,7 +160,7 @@ func NewDistributedAppWithSocketDir(configPath string, socketDir string) (*Distr
 	return app, nil
 }
 
-// Start starts the distributed load balancer with leader election
+// Start starts the distributed load balancer with leader election.
 func (d *DistributedApp) Start() error {
 	fmt.Println("Starting GoProxLB in distributed mode...")
 	fmt.Printf("Configuration loaded from: %s\n", "config.yaml")
@@ -229,7 +229,7 @@ func (d *DistributedApp) Start() error {
 	return d.Stop()
 }
 
-// Stop stops the distributed application
+// Stop stops the distributed application.
 func (d *DistributedApp) Stop() error {
 	fmt.Println("Stopping distributed load balancer...")
 	d.cancel()
@@ -244,7 +244,7 @@ func (d *DistributedApp) Stop() error {
 	return d.raftNode.Stop()
 }
 
-// monitorLeadership monitors for leadership changes
+// monitorLeadership monitors for leadership changes.
 func (d *DistributedApp) monitorLeadership() {
 	leaderChan := d.raftNode.GetLeaderChan()
 
@@ -266,7 +266,7 @@ func (d *DistributedApp) monitorLeadership() {
 	}
 }
 
-// startBalancingLoop starts the load balancing loop
+// startBalancingLoop starts the load balancing loop.
 func (d *DistributedApp) startBalancingLoop() {
 	// Balancing is always enabled when running
 
@@ -299,13 +299,13 @@ func (d *DistributedApp) startBalancingLoop() {
 	}()
 }
 
-// stopBalancingLoop stops the load balancing loop
+// stopBalancingLoop stops the load balancing loop.
 func (d *DistributedApp) stopBalancingLoop() {
 	// The balancing loop will automatically stop when d.isLeader becomes false
 	fmt.Println("Load balancing stopped (no longer leader)")
 }
 
-// runBalancingCycle runs a single balancing cycle
+// runBalancingCycle runs a single balancing cycle.
 func (d *DistributedApp) runBalancingCycle() error {
 	if !d.isLeader {
 		return fmt.Errorf("not the leader, skipping balancing cycle")
@@ -338,7 +338,7 @@ func (d *DistributedApp) runBalancingCycle() error {
 	return nil
 }
 
-// handleStatusRequest handles status requests from Unix socket clients
+// handleStatusRequest handles status requests from Unix socket clients.
 func (d *DistributedApp) handleStatusRequest(conn net.Conn) {
 	defer conn.Close()
 
@@ -360,7 +360,7 @@ func (d *DistributedApp) handleStatusRequest(conn net.Conn) {
 	}
 }
 
-// GetStatus returns the current status of the distributed application
+// GetStatus returns the current status of the distributed application.
 func (d *DistributedApp) GetStatus() map[string]interface{} {
 	return map[string]interface{}{
 		"node_id":           d.config.Raft.NodeID,

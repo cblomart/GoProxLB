@@ -13,7 +13,7 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
-// RaftNode represents a Raft node for leader election
+// RaftNode represents a Raft node for leader election.
 type RaftNode struct {
 	raft       *raft.Raft
 	nodeID     string
@@ -24,7 +24,7 @@ type RaftNode struct {
 	shutdownCh chan struct{}
 }
 
-// NewRaftNode creates a new Raft node for leader election
+// NewRaftNode creates a new Raft node for leader election.
 func NewRaftNode(nodeID, address, dataDir string, peers []string) (*RaftNode, error) {
 	// Create data directory if it doesn't exist
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
@@ -123,7 +123,7 @@ func NewRaftNode(nodeID, address, dataDir string, peers []string) (*RaftNode, er
 	}, nil
 }
 
-// Start starts the Raft node and begins leader election monitoring
+// Start starts the Raft node and begins leader election monitoring.
 func (r *RaftNode) Start() error {
 	// Start monitoring leader changes
 	go r.monitorLeaderChanges()
@@ -145,7 +145,7 @@ func (r *RaftNode) Start() error {
 	}
 }
 
-// Stop stops the Raft node
+// Stop stops the Raft node.
 func (r *RaftNode) Stop() error {
 	close(r.shutdownCh)
 
@@ -169,27 +169,27 @@ func (r *RaftNode) Stop() error {
 	}
 }
 
-// IsLeader returns true if this node is the current leader
+// IsLeader returns true if this node is the current leader.
 func (r *RaftNode) IsLeader() bool {
 	return r.raft.State() == raft.Leader
 }
 
-// GetLeader returns the current leader's address
+// GetLeader returns the current leader's address.
 func (r *RaftNode) GetLeader() string {
 	return string(r.raft.Leader())
 }
 
-// GetState returns the current Raft state
+// GetState returns the current Raft state.
 func (r *RaftNode) GetState() raft.RaftState {
 	return r.raft.State()
 }
 
-// GetPeers returns the list of peers
+// GetPeers returns the list of peers.
 func (r *RaftNode) GetPeers() []string {
 	return r.peers
 }
 
-// WaitForLeader waits for a leader to be elected
+// WaitForLeader waits for a leader to be elected.
 func (r *RaftNode) WaitForLeader(ctx context.Context) error {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -206,7 +206,7 @@ func (r *RaftNode) WaitForLeader(ctx context.Context) error {
 	}
 }
 
-// monitorLeaderChanges monitors for leader changes and notifies via channel
+// monitorLeaderChanges monitors for leader changes and notifies via channel.
 func (r *RaftNode) monitorLeaderChanges() {
 	var lastLeader string
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -232,31 +232,31 @@ func (r *RaftNode) monitorLeaderChanges() {
 	}
 }
 
-// GetLeaderChan returns a channel that receives leader status changes
+// GetLeaderChan returns a channel that receives leader status changes.
 func (r *RaftNode) GetLeaderChan() <-chan bool {
 	return r.leaderChan
 }
 
-// LoadBalancerFSM implements the Raft FSM interface
+// LoadBalancerFSM implements the Raft FSM interface.
 type LoadBalancerFSM struct {
 	// This is a minimal FSM since we only need leader election
 	// No actual state changes are needed for load balancer coordination
 }
 
-// Apply applies a log entry to the FSM
+// Apply applies a log entry to the FSM.
 func (f *LoadBalancerFSM) Apply(log *raft.Log) interface{} {
 	// For load balancer coordination, we don't need to apply any logs
 	// The leader election is handled by Raft itself
 	return nil
 }
 
-// Snapshot creates a snapshot of the FSM
+// Snapshot creates a snapshot of the FSM.
 func (f *LoadBalancerFSM) Snapshot() (raft.FSMSnapshot, error) {
 	// Return a minimal snapshot since we don't have state to snapshot
 	return &LoadBalancerSnapshot{}, nil
 }
 
-// Restore restores the FSM from a snapshot
+// Restore restores the FSM from a snapshot.
 func (f *LoadBalancerFSM) Restore(rc io.ReadCloser) error {
 	// No state to restore
 	if rc != nil {
@@ -265,10 +265,10 @@ func (f *LoadBalancerFSM) Restore(rc io.ReadCloser) error {
 	return nil
 }
 
-// LoadBalancerSnapshot implements the FSMSnapshot interface
+// LoadBalancerSnapshot implements the FSMSnapshot interface.
 type LoadBalancerSnapshot struct{}
 
-// Persist persists the snapshot
+// Persist persists the snapshot.
 func (s *LoadBalancerSnapshot) Persist(sink raft.SnapshotSink) error {
 	// No state to persist
 	if sink != nil {
@@ -277,7 +277,7 @@ func (s *LoadBalancerSnapshot) Persist(sink raft.SnapshotSink) error {
 	return nil
 }
 
-// Release releases the snapshot
+// Release releases the snapshot.
 func (s *LoadBalancerSnapshot) Release() {
 	// Nothing to release
 }

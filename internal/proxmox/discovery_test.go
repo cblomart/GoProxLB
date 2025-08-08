@@ -7,7 +7,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/models"
 )
 
-// MockClient implements ClientInterface for testing
+// MockClient implements ClientInterface for testing.
 type MockClient struct {
 	clusterInfo *models.Cluster
 	nodes       []models.Node

@@ -115,7 +115,7 @@ func TestForceFlag(t *testing.T) {
 	}
 }
 
-// Helper functions
+// Helper functions.
 
 func captureCommandOutput(cmd *cobra.Command, args []string) string {
 	// Capture stdout

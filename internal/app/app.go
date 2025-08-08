@@ -29,7 +29,7 @@ const (
 	balancerAdvanced  = "advanced"
 )
 
-// App represents the main application
+// App represents the main application.
 type App struct {
 	config   *config.Config
 	client   ClientInterface
@@ -38,7 +38,7 @@ type App struct {
 	cancel   context.CancelFunc
 }
 
-// NewApp creates a new application instance
+// NewApp creates a new application instance.
 func NewApp(configPath string) (*App, error) {
 	config, err := config.Load(configPath)
 	if err != nil {
@@ -74,7 +74,7 @@ func NewApp(configPath string) (*App, error) {
 	}, nil
 }
 
-// NewAppWithDependencies creates a new application instance with custom dependencies
+// NewAppWithDependencies creates a new application instance with custom dependencies.
 func NewAppWithDependencies(configPath string, configLoader ConfigLoaderInterface, client ClientInterface, balancerInstance BalancerInterface) (*App, error) {
 	var cfg *config.Config
 	var err error
@@ -115,7 +115,7 @@ func NewAppWithDependencies(configPath string, configLoader ConfigLoaderInterfac
 	}, nil
 }
 
-// NewAppWithDefaults creates a new application instance with default configuration
+// NewAppWithDefaults creates a new application instance with default configuration.
 func NewAppWithDefaults() (*App, error) {
 	config, err := config.LoadDefault()
 	if err != nil {
@@ -147,12 +147,12 @@ func NewAppWithDefaults() (*App, error) {
 	}, nil
 }
 
-// Start starts the load balancer daemon with default balancer type
+// Start starts the load balancer daemon with default balancer type.
 func Start(configPath string) error {
 	return StartWithBalancerType(configPath, "")
 }
 
-// StartWithBalancerType starts the load balancer daemon with a specific balancer type
+// StartWithBalancerType starts the load balancer daemon with a specific balancer type.
 func StartWithBalancerType(configPath, balancerType string) error {
 	app, err := NewApp(configPath)
 	if err != nil {
@@ -220,7 +220,7 @@ func StartWithBalancerType(configPath, balancerType string) error {
 	}
 }
 
-// runBalancingCycle runs a single balancing cycle
+// runBalancingCycle runs a single balancing cycle.
 func (app *App) runBalancingCycle() error {
 	fmt.Printf("[%s] Running balancing cycle...\n", time.Now().Format("2006-01-02 15:04:05"))
 
@@ -248,7 +248,7 @@ func (app *App) runBalancingCycle() error {
 	return nil
 }
 
-// ShowStatus shows the current status of the load balancer
+// ShowStatus shows the current status of the load balancer.
 func ShowStatus(configPath string) error {
 	var app *App
 	var err error
@@ -284,7 +284,7 @@ func ShowStatus(configPath string) error {
 	return nil
 }
 
-// ShowClusterInfo shows detailed cluster information
+// ShowClusterInfo shows detailed cluster information.
 func ShowClusterInfo(configPath string) error {
 	var app *App
 	var err error
@@ -341,7 +341,7 @@ func ShowClusterInfo(configPath string) error {
 	return nil
 }
 
-// ListVMs lists all VMs in the cluster
+// ListVMs lists all VMs in the cluster.
 func ListVMs(configPath string) error {
 	var app *App
 	var err error
@@ -401,7 +401,7 @@ func ListVMs(configPath string) error {
 	return nil
 }
 
-// ForceBalance forces a balancing operation
+// ForceBalance forces a balancing operation.
 func ForceBalance(configPath string, force bool) error {
 	app, err := NewApp(configPath)
 	if err != nil {
@@ -433,7 +433,7 @@ func ForceBalance(configPath string, force bool) error {
 	return nil
 }
 
-// ForceBalanceWithBalancerType forces a balancing operation with a specific balancer type
+// ForceBalanceWithBalancerType forces a balancing operation with a specific balancer type.
 func ForceBalanceWithBalancerType(configPath string, force bool, balancerType string) error {
 	app, err := NewApp(configPath)
 	if err != nil {
@@ -481,7 +481,7 @@ func ForceBalanceWithBalancerType(configPath string, force bool, balancerType st
 	return nil
 }
 
-// ShowCapacityPlanning shows detailed capacity planning information
+// ShowCapacityPlanning shows detailed capacity planning information.
 func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csvOutput string) error {
 	// Load configuration
 	cfg, err := config.Load(configPath)
@@ -743,7 +743,7 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csv
 	return nil
 }
 
-// writeCSVFile writes the CSV data to a file
+// writeCSVFile writes the CSV data to a file.
 func writeCSVFile(filename string, data [][]string) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -763,7 +763,7 @@ func writeCSVFile(filename string, data [][]string) error {
 	return nil
 }
 
-// ShowRaftStatus shows detailed Raft cluster status information
+// ShowRaftStatus shows detailed Raft cluster status information.
 func ShowRaftStatus(configPath string) error {
 	var app *App
 	var err error
@@ -886,7 +886,7 @@ func ShowRaftStatus(configPath string) error {
 	return nil
 }
 
-// InstallService installs the GoProxLB service as a systemd service
+// InstallService installs the GoProxLB service as a systemd service.
 func InstallService(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
@@ -964,9 +964,7 @@ WantedBy=multi-user.target
 	}
 
 	// Create user and group if they don't exist
-	if err := createUserAndGroup(user, group); err != nil {
-		return fmt.Errorf("failed to create user/group: %w", err)
-	}
+	createUserAndGroup(user, group)
 
 	// Write the service file
 	if err := os.WriteFile(serviceFilePath, []byte(serviceContent), 0644); err != nil {
@@ -974,9 +972,7 @@ WantedBy=multi-user.target
 	}
 
 	// Set proper ownership
-	if err := setOwnership(user, group, dirs); err != nil {
-		return fmt.Errorf("failed to set ownership: %w", err)
-	}
+	setOwnership(user, group, dirs)
 
 	// Reload systemd daemon
 	if err := exec.Command("systemctl", "daemon-reload").Run(); err != nil {
@@ -1018,7 +1014,7 @@ WantedBy=multi-user.target
 	return nil
 }
 
-// installServiceDryRun shows what would be installed without actually doing it
+// installServiceDryRun shows what would be installed without actually doing it.
 func installServiceDryRun(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
@@ -1100,13 +1096,14 @@ WantedBy=multi-user.target
 	return nil
 }
 
-// createUserAndGroup creates the specified user and group if they don't exist
-func createUserAndGroup(user, group string) error {
+// createUserAndGroup creates the specified user and group if they don't exist.
+func createUserAndGroup(user, group string) {
 	// Check if group exists
 	if _, err := exec.LookPath("groupadd"); err == nil {
 		cmd := exec.Command("groupadd", "-r", group)
 		if err := cmd.Run(); err != nil {
 			// Group might already exist, which is fine
+			_ = err // Suppress unused variable warning
 		}
 	}
 
@@ -1115,19 +1112,18 @@ func createUserAndGroup(user, group string) error {
 		cmd := exec.Command("useradd", "-r", "-g", group, "-d", "/var/lib/goproxlb", "-s", "/bin/false", user)
 		if err := cmd.Run(); err != nil {
 			// User might already exist, which is fine
+			_ = err // Suppress unused variable warning
 		}
 	}
-
-	return nil
 }
 
-// setOwnership sets the ownership of directories to the specified user and group
-func setOwnership(user, group string, dirs []string) error {
+// setOwnership sets the ownership of directories to the specified user and group.
+func setOwnership(user, group string, dirs []string) {
 	for _, dir := range dirs {
 		cmd := exec.Command("chown", user+":"+group, dir)
 		if err := cmd.Run(); err != nil {
 			// Ignore ownership errors, might not have permissions
+			_ = err // Suppress unused variable warning
 		}
 	}
-	return nil
 }

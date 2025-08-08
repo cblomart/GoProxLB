@@ -19,7 +19,7 @@ const (
 	criticalityLevelCritical = "Critical"
 )
 
-// AdvancedBalancer represents the advanced load balancer with profiling and capacity planning
+// AdvancedBalancer represents the advanced load balancer with profiling and capacity planning.
 type AdvancedBalancer struct {
 	client           proxmox.ClientInterface
 	config           *config.Config
@@ -30,7 +30,7 @@ type AdvancedBalancer struct {
 	capacityMetrics  map[string]*models.CapacityMetrics
 }
 
-// NewAdvancedBalancer creates a new advanced load balancer
+// NewAdvancedBalancer creates a new advanced load balancer.
 func NewAdvancedBalancer(client proxmox.ClientInterface, cfg *config.Config) *AdvancedBalancer {
 	return &AdvancedBalancer{
 		client:           client,
@@ -42,7 +42,7 @@ func NewAdvancedBalancer(client proxmox.ClientInterface, cfg *config.Config) *Ad
 	}
 }
 
-// Run executes the advanced load balancing algorithm
+// Run executes the advanced load balancing algorithm.
 func (b *AdvancedBalancer) Run(force bool) ([]models.BalancingResult, error) {
 	// Get current cluster state
 	nodes, err := b.client.GetNodes()
@@ -97,7 +97,7 @@ func (b *AdvancedBalancer) Run(force bool) ([]models.BalancingResult, error) {
 	return results, nil
 }
 
-// GetClusterStatus returns the advanced cluster status
+// GetClusterStatus returns the advanced cluster status.
 func (b *AdvancedBalancer) GetClusterStatus() (*models.ClusterStatus, error) {
 	nodes, err := b.client.GetNodes()
 	if err != nil {
@@ -146,22 +146,22 @@ func (b *AdvancedBalancer) GetClusterStatus() (*models.ClusterStatus, error) {
 	}, nil
 }
 
-// updateLoadProfiles updates load profiles for all VMs
+// updateLoadProfiles updates load profiles for all VMs.
 func (b *AdvancedBalancer) updateLoadProfiles(nodes []models.Node) {
 	for i := range nodes {
 		node := &nodes[i]
 		for j := range node.VMs {
 			vm := &node.VMs[j]
 			if vm.Status == vmStatusRunning {
-				profile := b.analyzeLoadProfile(vm, node)
+				profile := b.analyzeLoadProfile(vm)
 				b.loadProfiles[vm.ID] = profile
 			}
 		}
 	}
 }
 
-// analyzeLoadProfile analyzes the load profile of a VM using historical data
-func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM, node *models.Node) *models.LoadProfile {
+// analyzeLoadProfile analyzes the load profile of a VM using historical data.
+func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM) *models.LoadProfile {
 	// Use simplified analysis
 	cpuPattern := b.analyzeCPUPatternFromHistory()
 	memoryPattern := b.analyzeMemoryPatternFromHistory()
@@ -182,7 +182,7 @@ func (b *AdvancedBalancer) analyzeLoadProfile(vm *models.VM, node *models.Node) 
 	}
 }
 
-// analyzeLoadProfileSimplified provides simplified analysis when historical data is not available
+// analyzeLoadProfileSimplified provides simplified analysis when historical data is not available.
 func (b *AdvancedBalancer) analyzeLoadProfileSimplified(vm *models.VM) *models.LoadProfile {
 	// Determine CPU pattern
 	cpuPattern := b.analyzeCPUPattern(vm)
@@ -208,7 +208,7 @@ func (b *AdvancedBalancer) analyzeLoadProfileSimplified(vm *models.VM) *models.L
 	}
 }
 
-// analyzeCPUPattern analyzes CPU usage patterns
+// analyzeCPUPattern analyzes CPU usage patterns.
 func (b *AdvancedBalancer) analyzeCPUPattern(vm *models.VM) models.CPUPattern {
 	// Simplified analysis - in reality, you'd analyze historical data
 	if vm.CPU > 80.0 {
@@ -229,7 +229,7 @@ func (b *AdvancedBalancer) analyzeCPUPattern(vm *models.VM) models.CPUPattern {
 	}
 }
 
-// analyzeCPUPatternFromHistory analyzes CPU usage patterns from historical data
+// analyzeCPUPatternFromHistory analyzes CPU usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeCPUPatternFromHistory() models.CPUPattern {
 	// Simplified analysis without historical data
 
@@ -241,7 +241,7 @@ func (b *AdvancedBalancer) analyzeCPUPatternFromHistory() models.CPUPattern {
 	}
 }
 
-// analyzeMemoryPattern analyzes memory usage patterns
+// analyzeMemoryPattern analyzes memory usage patterns.
 func (b *AdvancedBalancer) analyzeMemoryPattern(vm *models.VM) models.MemoryPattern {
 	// Simplified analysis
 	return models.MemoryPattern{
@@ -251,7 +251,7 @@ func (b *AdvancedBalancer) analyzeMemoryPattern(vm *models.VM) models.MemoryPatt
 	}
 }
 
-// analyzeMemoryPatternFromHistory analyzes memory usage patterns from historical data
+// analyzeMemoryPatternFromHistory analyzes memory usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory() models.MemoryPattern {
 	// Simplified analysis without historical data - in reality, you'd analyze historical data
 	// For now, we'll just return a placeholder or a basic pattern
@@ -265,7 +265,7 @@ func (b *AdvancedBalancer) analyzeMemoryPatternFromHistory() models.MemoryPatter
 	}
 }
 
-// analyzeStoragePattern analyzes storage usage patterns
+// analyzeStoragePattern analyzes storage usage patterns.
 func (b *AdvancedBalancer) analyzeStoragePattern() models.StoragePattern {
 	// Simplified analysis
 	return models.StoragePattern{
@@ -277,7 +277,7 @@ func (b *AdvancedBalancer) analyzeStoragePattern() models.StoragePattern {
 	}
 }
 
-// analyzeStoragePatternFromHistory analyzes storage usage patterns from historical data
+// analyzeStoragePatternFromHistory analyzes storage usage patterns from historical data.
 func (b *AdvancedBalancer) analyzeStoragePatternFromHistory() models.StoragePattern {
 	// Simplified analysis without historical data
 	// For now, we'll just return a placeholder or a basic pattern
@@ -292,7 +292,7 @@ func (b *AdvancedBalancer) analyzeStoragePatternFromHistory() models.StoragePatt
 	}
 }
 
-// determinePriority determines VM priority
+// determinePriority determines VM priority.
 func (b *AdvancedBalancer) determinePriority(vm *models.VM, cpu models.CPUPattern) models.Priority {
 	// Check for priority tags
 	for _, tag := range vm.Tags {
@@ -316,7 +316,7 @@ func (b *AdvancedBalancer) determinePriority(vm *models.VM, cpu models.CPUPatter
 	}
 }
 
-// determineCriticality determines VM criticality
+// determineCriticality determines VM criticality.
 func (b *AdvancedBalancer) determineCriticality(vm *models.VM, priority models.Priority) models.Criticality {
 	// Check for criticality tags
 	for _, tag := range vm.Tags {
@@ -339,7 +339,7 @@ func (b *AdvancedBalancer) determineCriticality(vm *models.VM, priority models.P
 	}
 }
 
-// updateCapacityMetrics updates capacity planning metrics
+// updateCapacityMetrics updates capacity planning metrics.
 func (b *AdvancedBalancer) updateCapacityMetrics(nodes []models.Node) {
 	for i := range nodes {
 		node := &nodes[i]
@@ -391,7 +391,7 @@ func (b *AdvancedBalancer) updateCapacityMetrics(nodes []models.Node) {
 	}
 }
 
-// updateCapacityMetricsSimplified provides simplified capacity metrics when historical data is not available
+// updateCapacityMetricsSimplified provides simplified capacity metrics when historical data is not available.
 func (b *AdvancedBalancer) updateCapacityMetricsSimplified(node *models.Node) {
 	var cpuValues []float32
 
@@ -414,7 +414,7 @@ func (b *AdvancedBalancer) updateCapacityMetricsSimplified(node *models.Node) {
 	}
 }
 
-// calculatePercentiles calculates percentile metrics (optimized for performance)
+// calculatePercentiles calculates percentile metrics (optimized for performance).
 func (b *AdvancedBalancer) calculatePercentiles(values []float32) models.CapacityMetrics {
 	if len(values) == 0 {
 		return models.CapacityMetrics{}
@@ -489,7 +489,7 @@ func (b *AdvancedBalancer) calculatePercentiles(values []float32) models.Capacit
 	}
 }
 
-// calculateAdvancedNodeScores calculates node scores with advanced algorithms including capacity planning
+// calculateAdvancedNodeScores calculates node scores with advanced algorithms including capacity planning.
 func (b *AdvancedBalancer) calculateAdvancedNodeScores(nodes []models.Node) []models.NodeScore {
 	var scores []models.NodeScore
 
@@ -531,7 +531,7 @@ func (b *AdvancedBalancer) calculateAdvancedNodeScores(nodes []models.Node) []mo
 	return scores
 }
 
-// calculateResourceScore calculates resource-based score with capacity planning integration
+// calculateResourceScore calculates resource-based score with capacity planning integration.
 func (b *AdvancedBalancer) calculateResourceScore(node *models.Node) float64 {
 	// Get capacity metrics for predictive scoring
 	metrics, exists := b.capacityMetrics[node.Name]
@@ -566,7 +566,7 @@ func (b *AdvancedBalancer) calculateResourceScore(node *models.Node) float64 {
 	return float64(weightedSum) / float64(totalWeight) / 100.0
 }
 
-// calculateStabilityScore calculates stability-based score (optimized for performance)
+// calculateStabilityScore calculates stability-based score (optimized for performance).
 func (b *AdvancedBalancer) calculateStabilityScore(node *models.Node) float64 {
 	// Cache current time to avoid multiple calls
 	now := time.Now()
@@ -617,7 +617,7 @@ func (b *AdvancedBalancer) calculateStabilityScore(node *models.Node) float64 {
 	return migrationPenalty - ageBonus
 }
 
-// calculateMigrationCost calculates migration cost for a node (optimized for performance)
+// calculateMigrationCost calculates migration cost for a node (optimized for performance).
 func (b *AdvancedBalancer) calculateMigrationCost(node *models.Node) float64 {
 	// Use integer math for better performance
 	// Convert percentages to integers for faster calculations
@@ -635,7 +635,7 @@ func (b *AdvancedBalancer) calculateMigrationCost(node *models.Node) float64 {
 	return baseCost
 }
 
-// calculateCapacityScore calculates capacity planning score for a node (optimized for performance)
+// calculateCapacityScore calculates capacity planning score for a node (optimized for performance).
 func (b *AdvancedBalancer) calculateCapacityScore(node *models.Node) float64 {
 	// Get current capacity metrics for the node
 	metrics, exists := b.capacityMetrics[node.Name]
@@ -665,7 +665,7 @@ func (b *AdvancedBalancer) calculateCapacityScore(node *models.Node) float64 {
 	return capacityScore * aggConfig.CapacityWeight
 }
 
-// calculateCapacityScoreSimplified provides simplified capacity score when historical data is not available
+// calculateCapacityScoreSimplified provides simplified capacity score when historical data is not available.
 func (b *AdvancedBalancer) calculateCapacityScoreSimplified(node *models.Node) float64 {
 	// Use current data as fallback
 	cpuScore := 0.0
@@ -686,7 +686,7 @@ func (b *AdvancedBalancer) calculateCapacityScoreSimplified(node *models.Node) f
 	return capacityScore * aggConfig.CapacityWeight
 }
 
-// findOptimalMigrations finds optimal migration plan (optimized for performance)
+// findOptimalMigrations finds optimal migration plan (optimized for performance).
 func (b *AdvancedBalancer) findOptimalMigrations(nodes []models.Node, nodeScores []models.NodeScore, aggConfig config.AggressivenessConfig) []models.Migration {
 	// Pre-allocate slice with reasonable capacity to reduce allocations
 	migrations := make([]models.Migration, 0, 5) // Most clusters won't need more than 5 migrations
@@ -758,7 +758,7 @@ func (b *AdvancedBalancer) findOptimalMigrations(nodes []models.Node, nodeScores
 	return migrations
 }
 
-// canMigrateVM checks if a VM can be migrated (optimized for performance)
+// canMigrateVM checks if a VM can be migrated (optimized for performance).
 func (b *AdvancedBalancer) canMigrateVM(vm *models.VM, sourceNode string) bool {
 	// Cache current time to avoid multiple calls
 	now := time.Now()
@@ -780,7 +780,7 @@ func (b *AdvancedBalancer) canMigrateVM(vm *models.VM, sourceNode string) bool {
 	return b.engine.ValidatePlacement(vm, sourceNode) == nil
 }
 
-// findBestTargetNode finds the best target node for a VM
+// findBestTargetNode finds the best target node for a VM.
 func (b *AdvancedBalancer) findBestTargetNode(vm *models.VM, nodeScores []models.NodeScore, sourceNode string) string {
 	// Get available nodes for validation
 	var availableNodes []string
@@ -816,7 +816,7 @@ func (b *AdvancedBalancer) findBestTargetNode(vm *models.VM, nodeScores []models
 	return ""
 }
 
-// calculateResourceGain calculates resource gain from migration (optimized for performance)
+// calculateResourceGain calculates resource gain from migration (optimized for performance).
 func (b *AdvancedBalancer) calculateResourceGain(sourceNode, targetNode string, nodeScores []models.NodeScore) float64 {
 	// Use map for O(1) lookup instead of O(n) search
 	nodeScoreMap := make(map[string]float64, len(nodeScores))
@@ -837,7 +837,7 @@ func (b *AdvancedBalancer) calculateResourceGain(sourceNode, targetNode string, 
 	return sourceScore - targetScore
 }
 
-// executeMigrations executes the migration plan
+// executeMigrations executes the migration plan.
 func (b *AdvancedBalancer) executeMigrations(migrations []models.Migration) []models.BalancingResult {
 	var results []models.BalancingResult
 
@@ -866,7 +866,7 @@ func (b *AdvancedBalancer) executeMigrations(migrations []models.Migration) []mo
 	return results
 }
 
-// updateMigrationHistory updates migration history
+// updateMigrationHistory updates migration history.
 func (b *AdvancedBalancer) updateMigrationHistory(results []models.BalancingResult) {
 	for i := range results {
 		result := &results[i]
@@ -893,7 +893,7 @@ func (b *AdvancedBalancer) updateMigrationHistory(results []models.BalancingResu
 	b.migrationHistory = recentHistory
 }
 
-// filterAvailableNodes filters out maintenance nodes
+// filterAvailableNodes filters out maintenance nodes.
 func (b *AdvancedBalancer) filterAvailableNodes(nodes []models.Node) []models.Node {
 	var available []models.Node
 
@@ -907,7 +907,7 @@ func (b *AdvancedBalancer) filterAvailableNodes(nodes []models.Node) []models.No
 	return available
 }
 
-// isInMaintenance checks if a node is in maintenance mode
+// isInMaintenance checks if a node is in maintenance mode.
 func (b *AdvancedBalancer) isInMaintenance(nodeName string) bool {
 	for _, maintenanceNode := range b.config.Cluster.MaintenanceNodes {
 		if maintenanceNode == nodeName {
@@ -917,7 +917,7 @@ func (b *AdvancedBalancer) isInMaintenance(nodeName string) bool {
 	return false
 }
 
-// needsBalancing checks if balancing is needed
+// needsBalancing checks if balancing is needed.
 func (b *AdvancedBalancer) needsBalancing(nodes []models.Node) bool {
 	for i := range nodes {
 		node := &nodes[i]
@@ -930,13 +930,13 @@ func (b *AdvancedBalancer) needsBalancing(nodes []models.Node) bool {
 	return false
 }
 
-// GetCapacityMetrics returns capacity metrics for a specific node
+// GetCapacityMetrics returns capacity metrics for a specific node.
 func (b *AdvancedBalancer) GetCapacityMetrics(nodeName string) (*models.CapacityMetrics, bool) {
 	metrics, exists := b.capacityMetrics[nodeName]
 	return metrics, exists
 }
 
-// PredictResourceEvolution predicts resource usage evolution for a given period
+// PredictResourceEvolution predicts resource usage evolution for a given period.
 func (b *AdvancedBalancer) PredictResourceEvolution(nodeName, resourceType string, forecastDuration time.Duration) float64 {
 	metrics, exists := b.capacityMetrics[nodeName]
 	if !exists {
@@ -966,7 +966,7 @@ func (b *AdvancedBalancer) PredictResourceEvolution(nodeName, resourceType strin
 	return predictedUsage
 }
 
-// GetResourceRecommendations provides resource recommendations for a node
+// GetResourceRecommendations provides resource recommendations for a node.
 func (b *AdvancedBalancer) GetResourceRecommendations(nodeName string, detailed bool) []string {
 	var recommendations []string
 
@@ -1011,7 +1011,7 @@ func (b *AdvancedBalancer) GetResourceRecommendations(nodeName string, detailed 
 	return recommendations
 }
 
-// VMProfile represents a VM's workload profile and recommendations
+// VMProfile represents a VM's workload profile and recommendations.
 type VMProfile struct {
 	WorkloadType    string
 	Pattern         string
@@ -1021,7 +1021,7 @@ type VMProfile struct {
 	Recommendations []string
 }
 
-// AnalyzeVMProfile analyzes a VM's workload profile and provides recommendations
+// AnalyzeVMProfile analyzes a VM's workload profile and provides recommendations.
 func (b *AdvancedBalancer) AnalyzeVMProfile(vm models.VM, nodeName string) VMProfile {
 	profile := VMProfile{
 		WorkloadType: "Unknown",
@@ -1125,7 +1125,7 @@ func (b *AdvancedBalancer) AnalyzeVMProfile(vm models.VM, nodeName string) VMPro
 	return profile
 }
 
-// GetClusterRecommendations provides cluster-wide capacity planning recommendations
+// GetClusterRecommendations provides cluster-wide capacity planning recommendations.
 func (b *AdvancedBalancer) GetClusterRecommendations(forecastDuration time.Duration) []string {
 	var recommendations []string
 

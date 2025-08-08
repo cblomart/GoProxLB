@@ -9,7 +9,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/config"
 )
 
-// Helper function for encoding JSON in tests
+// Helper function for encoding JSON in tests.
 func writeJSON(w http.ResponseWriter, data interface{}) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		// In tests, we can ignore the error or log it
@@ -17,7 +17,7 @@ func writeJSON(w http.ResponseWriter, data interface{}) {
 	}
 }
 
-// Mock server for testing
+// Mock server for testing.
 func setupMockServer() (*httptest.Server, *config.ProxmoxConfig) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Mock authentication check

@@ -14,7 +14,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/models"
 )
 
-// Client represents a Proxmox API client
+// Client represents a Proxmox API client.
 type Client struct {
 	host     string
 	username string
@@ -24,7 +24,7 @@ type Client struct {
 	client   *http.Client
 }
 
-// NewClient creates a new Proxmox API client
+// NewClient creates a new Proxmox API client.
 func NewClient(cfg *config.ProxmoxConfig) *Client {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -45,7 +45,7 @@ func NewClient(cfg *config.ProxmoxConfig) *Client {
 	}
 }
 
-// GetClusterInfo retrieves cluster information
+// GetClusterInfo retrieves cluster information.
 func (c *Client) GetClusterInfo() (*models.Cluster, error) {
 	resp, err := c.request("GET", "/api2/json/cluster/status", nil)
 	if err != nil {
@@ -84,7 +84,7 @@ func (c *Client) GetClusterInfo() (*models.Cluster, error) {
 	return cluster, nil
 }
 
-// GetNodes retrieves all nodes in the cluster
+// GetNodes retrieves all nodes in the cluster.
 func (c *Client) GetNodes() ([]models.Node, error) {
 	resp, err := c.request("GET", "/api2/json/nodes", nil)
 	if err != nil {
@@ -120,7 +120,7 @@ func (c *Client) GetNodes() ([]models.Node, error) {
 	return nodes, nil
 }
 
-// getNodeDetails retrieves detailed information about a specific node
+// getNodeDetails retrieves detailed information about a specific node.
 func (c *Client) getNodeDetails(nodeName string) (*models.Node, error) {
 	// Get node status
 	statusResp, err := c.request("GET", fmt.Sprintf("/api2/json/nodes/%s/status", nodeName), nil)
@@ -217,7 +217,7 @@ func (c *Client) getNodeDetails(nodeName string) (*models.Node, error) {
 	return node, nil
 }
 
-// getNodeVMs retrieves all VMs on a specific node
+// getNodeVMs retrieves all VMs on a specific node.
 func (c *Client) getNodeVMs(nodeName string) ([]models.VM, error) {
 	resp, err := c.request("GET", fmt.Sprintf("/api2/json/nodes/%s/qemu", nodeName), nil)
 	if err != nil {
@@ -270,7 +270,7 @@ func (c *Client) getNodeVMs(nodeName string) ([]models.VM, error) {
 	return vms, nil
 }
 
-// getNodeContainers retrieves all containers on a specific node
+// getNodeContainers retrieves all containers on a specific node.
 func (c *Client) getNodeContainers(nodeName string) ([]models.VM, error) {
 	resp, err := c.request("GET", fmt.Sprintf("/api2/json/nodes/%s/lxc", nodeName), nil)
 	if err != nil {
@@ -316,7 +316,7 @@ func (c *Client) getNodeContainers(nodeName string) ([]models.VM, error) {
 	return containers, nil
 }
 
-// MigrateVM migrates a VM from one node to another
+// MigrateVM migrates a VM from one node to another.
 func (c *Client) MigrateVM(vmID int, sourceNode, targetNode string) error {
 	data := url.Values{}
 	data.Set("target", targetNode)
@@ -335,7 +335,7 @@ func (c *Client) MigrateVM(vmID int, sourceNode, targetNode string) error {
 	return nil
 }
 
-// GetNodeHistoricalData retrieves historical metrics for a node
+// GetNodeHistoricalData retrieves historical metrics for a node.
 func (c *Client) GetNodeHistoricalData(nodeName, timeframe string) ([]HistoricalMetric, error) {
 	// timeframe: hour, day, week, month, year
 	resp, err := c.request("GET", fmt.Sprintf("/api2/json/nodes/%s/rrddata?timeframe=%s", nodeName, timeframe), nil)
@@ -370,7 +370,7 @@ func (c *Client) GetNodeHistoricalData(nodeName, timeframe string) ([]Historical
 	return metrics, nil
 }
 
-// GetVMHistoricalData retrieves historical metrics for a VM
+// GetVMHistoricalData retrieves historical metrics for a VM.
 func (c *Client) GetVMHistoricalData(nodeName string, vmID int, vmType, timeframe string) ([]HistoricalMetric, error) {
 	// vmType: qemu or lxc
 	resp, err := c.request("GET", fmt.Sprintf("/api2/json/nodes/%s/%s/%d/rrddata?timeframe=%s", nodeName, vmType, vmID, timeframe), nil)
@@ -405,7 +405,7 @@ func (c *Client) GetVMHistoricalData(nodeName string, vmID int, vmType, timefram
 	return metrics, nil
 }
 
-// HistoricalMetric represents a historical metric data point
+// HistoricalMetric represents a historical metric data point.
 type HistoricalMetric struct {
 	Timestamp time.Time `json:"timestamp"`
 	CPU       float64   `json:"cpu"`     // Percentage
@@ -414,7 +414,7 @@ type HistoricalMetric struct {
 	LoadAvg   float64   `json:"loadavg"` // System load average
 }
 
-// request makes an HTTP request to the Proxmox API
+// request makes an HTTP request to the Proxmox API.
 func (c *Client) request(method, path string, body io.Reader) (*http.Response, error) {
 	url := c.host + path
 	req, err := http.NewRequest(method, url, body)

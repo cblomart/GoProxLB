@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config represents the application configuration
+// Config represents the application configuration.
 type Config struct {
 	Proxmox   ProxmoxConfig   `mapstructure:"proxmox"`
 	Cluster   ClusterConfig   `mapstructure:"cluster"`
@@ -18,7 +18,7 @@ type Config struct {
 	Raft      RaftConfig      `mapstructure:"raft"`
 }
 
-// ProxmoxConfig holds Proxmox connection settings
+// ProxmoxConfig holds Proxmox connection settings.
 type ProxmoxConfig struct {
 	Host     string `mapstructure:"host"`
 	Username string `mapstructure:"username"`
@@ -27,13 +27,13 @@ type ProxmoxConfig struct {
 	Insecure bool   `mapstructure:"insecure"`
 }
 
-// ClusterConfig holds cluster-specific settings
+// ClusterConfig holds cluster-specific settings.
 type ClusterConfig struct {
 	Name             string   `mapstructure:"name"`
 	MaintenanceNodes []string `mapstructure:"maintenance_nodes"`
 }
 
-// BalancingConfig holds load balancing configuration
+// BalancingConfig holds load balancing configuration.
 type BalancingConfig struct {
 	Interval       string             `mapstructure:"interval"`
 	BalancerType   string             `mapstructure:"balancer_type"`  // "threshold" or "advanced"
@@ -47,39 +47,39 @@ type BalancingConfig struct {
 	Capacity     CapacityConfig     `mapstructure:"capacity"`
 }
 
-// ResourceThresholds defines when to trigger rebalancing
+// ResourceThresholds defines when to trigger rebalancing.
 type ResourceThresholds struct {
 	CPU     int `mapstructure:"cpu"`
 	Memory  int `mapstructure:"memory"`
 	Storage int `mapstructure:"storage"`
 }
 
-// ResourceWeights defines the importance of each resource type
+// ResourceWeights defines the importance of each resource type.
 type ResourceWeights struct {
 	CPU     float64 `mapstructure:"cpu"`
 	Memory  float64 `mapstructure:"memory"`
 	Storage float64 `mapstructure:"storage"`
 }
 
-// LoadProfilesConfig holds load profiling settings
+// LoadProfilesConfig holds load profiling settings.
 type LoadProfilesConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	Window  string `mapstructure:"window"` // Duration string (e.g., "24h")
 }
 
-// CapacityConfig holds capacity planning settings
+// CapacityConfig holds capacity planning settings.
 type CapacityConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
 	Forecast string `mapstructure:"forecast"` // Duration string (e.g., "7d")
 }
 
-// LoggingConfig holds logging settings
+// LoggingConfig holds logging settings.
 type LoggingConfig struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
 }
 
-// RaftConfig holds Raft leader election configuration
+// RaftConfig holds Raft leader election configuration.
 type RaftConfig struct {
 	Enabled      bool     `mapstructure:"enabled"`
 	NodeID       string   `mapstructure:"node_id"`
@@ -90,7 +90,7 @@ type RaftConfig struct {
 	Port         int      `mapstructure:"port"`          // Raft communication port
 }
 
-// Load reads configuration from file
+// Load reads configuration from file.
 func Load(configPath string) (*Config, error) {
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType("yaml")
@@ -114,7 +114,7 @@ func Load(configPath string) (*Config, error) {
 	return &config, nil
 }
 
-// LoadDefault creates a default configuration with sensible defaults
+// LoadDefault creates a default configuration with sensible defaults.
 func LoadDefault() (*Config, error) {
 	// Set up viper with defaults
 	viper.Reset()
@@ -134,7 +134,7 @@ func LoadDefault() (*Config, error) {
 	return &config, nil
 }
 
-// setDefaults sets default configuration values
+// setDefaults sets default configuration values.
 func setDefaults() {
 	// Set Proxmox defaults
 	viper.SetDefault("proxmox.host", "https://localhost:8006")
@@ -188,7 +188,7 @@ func setDefaults() {
 	viper.SetDefault("logging.format", "text")
 }
 
-// validateConfig validates the configuration
+// validateConfig validates the configuration.
 func validateConfig(config *Config) error {
 	// Validate Proxmox configuration
 	if config.Proxmox.Host == "" {
@@ -258,33 +258,33 @@ func validateConfig(config *Config) error {
 	return nil
 }
 
-// GetInterval returns the balancing interval as a time.Duration
+// GetInterval returns the balancing interval as a time.Duration.
 func (c *Config) GetInterval() (time.Duration, error) {
 	return time.ParseDuration(c.Balancing.Interval)
 }
 
-// GetCooldown returns the cooldown period as a time.Duration
+// GetCooldown returns the cooldown period as a time.Duration.
 func (c *Config) GetCooldown() (time.Duration, error) {
 	return time.ParseDuration(c.Balancing.Cooldown)
 }
 
-// GetLoadProfilesWindow returns the load profiles window as a time.Duration
+// GetLoadProfilesWindow returns the load profiles window as a time.Duration.
 func (c *Config) GetLoadProfilesWindow() (time.Duration, error) {
 	return time.ParseDuration(c.Balancing.LoadProfiles.Window)
 }
 
-// GetCapacityForecast returns the capacity forecast period as a time.Duration
+// GetCapacityForecast returns the capacity forecast period as a time.Duration.
 func (c *Config) GetCapacityForecast() (time.Duration, error) {
 	return time.ParseDuration(c.Balancing.Capacity.Forecast)
 }
 
-// IsAdvancedBalancer returns true if advanced balancer is enabled
+// IsAdvancedBalancer returns true if advanced balancer is enabled.
 func (c *Config) IsAdvancedBalancer() bool {
 	return c.Balancing.BalancerType == "advanced"
 }
 
-// GetAggressivenessConfig returns the aggressiveness configuration
-// Cooldown is per-VM: "don't touch this VM because we already moved it less than X ago"
+// GetAggressivenessConfig returns the aggressiveness configuration.
+// Cooldown is per-VM: "don't touch this VM because we already moved it less than X ago".
 func (c *Config) GetAggressivenessConfig() AggressivenessConfig {
 	switch c.Balancing.Aggressiveness {
 	case "low":
@@ -311,7 +311,7 @@ func (c *Config) GetAggressivenessConfig() AggressivenessConfig {
 	}
 }
 
-// AggressivenessConfig holds aggressiveness-specific settings
+// AggressivenessConfig holds aggressiveness-specific settings.
 type AggressivenessConfig struct {
 	CooldownPeriod  time.Duration
 	MinImprovement  float64
@@ -319,7 +319,7 @@ type AggressivenessConfig struct {
 	CapacityWeight  float64
 }
 
-// AutoDetectClusterName detects the cluster name from Proxmox API
+// AutoDetectClusterName detects the cluster name from Proxmox API.
 func (c *Config) AutoDetectClusterName(client interface{}) error {
 	if c.Cluster.Name != "" {
 		return nil // Already specified

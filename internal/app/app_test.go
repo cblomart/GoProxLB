@@ -10,7 +10,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/proxmox"
 )
 
-// Mock balancer for testing
+// Mock balancer for testing.
 type mockBalancer struct {
 	results []models.BalancingResult
 	err     error
@@ -25,7 +25,7 @@ func (m *mockBalancer) GetClusterStatus() (*models.ClusterStatus, error) {
 	return m.status, m.err
 }
 
-// Mock client for testing
+// Mock client for testing.
 type mockClient struct {
 	nodes            []models.Node
 	err              error
@@ -124,7 +124,7 @@ func (m *mockClient) GetVMHistoricalData(nodeName string, vmID int, vmType, time
 	}, nil
 }
 
-// Mock config loader for testing
+// Mock config loader for testing.
 type mockConfigLoader struct {
 	config *config.Config
 	err    error
@@ -134,7 +134,7 @@ func (m *mockConfigLoader) Load(configPath string) (*config.Config, error) {
 	return m.config, m.err
 }
 
-// Helper function to create test config
+// Helper function to create test config.
 func createTestConfig() *config.Config {
 	return &config.Config{
 		Proxmox: config.ProxmoxConfig{
@@ -167,7 +167,7 @@ func createTestConfig() *config.Config {
 	}
 }
 
-// Helper function to create test nodes
+// Helper function to create test nodes.
 func createTestNodes() []models.Node {
 	return []models.Node{
 		{
@@ -756,7 +756,7 @@ func TestForceBalanceWithBalancerTypeInvalid(t *testing.T) {
 	}
 }
 
-// Helper functions for testing with dependencies
+// Helper functions for testing with dependencies.
 func StartWithBalancerTypeWithDependencies(configPath, balancerType string, configLoader ConfigLoaderInterface, client ClientInterface, balancer BalancerInterface) error {
 	app, err := NewAppWithDependencies(configPath, configLoader, client, balancer)
 	if err != nil {

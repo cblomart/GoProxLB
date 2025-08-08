@@ -11,7 +11,7 @@ const (
 	nodeStatusOnline = "online"
 )
 
-// ClusterNode represents a node in the Proxmox cluster
+// ClusterNode represents a node in the Proxmox cluster.
 type ClusterNode struct {
 	NodeID      string `json:"nodeid"`
 	Name        string `json:"name"`
@@ -21,13 +21,13 @@ type ClusterNode struct {
 	HasGoProxLB bool   `json:"has_goproxlb"`
 }
 
-// DiscoveryService handles Proxmox cluster node discovery
+// DiscoveryService handles Proxmox cluster node discovery.
 type DiscoveryService struct {
 	client ClientInterface
 	port   int
 }
 
-// NewDiscoveryService creates a new discovery service
+// NewDiscoveryService creates a new discovery service.
 func NewDiscoveryService(client ClientInterface, port int) *DiscoveryService {
 	return &DiscoveryService{
 		client: client,
@@ -35,7 +35,7 @@ func NewDiscoveryService(client ClientInterface, port int) *DiscoveryService {
 	}
 }
 
-// DiscoverClusterNodes discovers all nodes in the Proxmox cluster
+// DiscoverClusterNodes discovers all nodes in the Proxmox cluster.
 func (d *DiscoveryService) DiscoverClusterNodes() ([]ClusterNode, error) {
 	// Get nodes from Proxmox
 	proxmoxNodes, err := d.client.GetNodes()
@@ -74,7 +74,7 @@ func (d *DiscoveryService) DiscoverClusterNodes() ([]ClusterNode, error) {
 	return nodes, nil
 }
 
-// GetRaftPeers returns the list of peers for Raft configuration
+// GetRaftPeers returns the list of peers for Raft configuration.
 func (d *DiscoveryService) GetRaftPeers(currentNodeID string) ([]string, error) {
 	nodes, err := d.DiscoverClusterNodes()
 	if err != nil {
@@ -99,7 +99,7 @@ func (d *DiscoveryService) GetRaftPeers(currentNodeID string) ([]string, error) 
 	return peers, nil
 }
 
-// GetCurrentNodeID determines the current node ID from the Proxmox client
+// GetCurrentNodeID determines the current node ID from the Proxmox client.
 func (d *DiscoveryService) GetCurrentNodeID() (string, error) {
 	// Get the current node from the Proxmox client
 	// This assumes the client is connected to the local node
@@ -121,7 +121,7 @@ func (d *DiscoveryService) GetCurrentNodeID() (string, error) {
 	return "", fmt.Errorf("no online nodes found in cluster")
 }
 
-// extractIPFromNodeID tries to extract IP from node ID
+// extractIPFromNodeID tries to extract IP from node ID.
 func (d *DiscoveryService) extractIPFromNodeID(nodeID string) string {
 	// Common patterns for node IDs that include IPs
 	// Example: "pve-192.168.1.10" or "node-10.0.0.5"
@@ -137,7 +137,7 @@ func (d *DiscoveryService) extractIPFromNodeID(nodeID string) string {
 	return ""
 }
 
-// resolveNodeName tries to resolve a node name to an IP address
+// resolveNodeName tries to resolve a node name to an IP address.
 func (d *DiscoveryService) resolveNodeName(nodeName string) string {
 	// Try to resolve the node name to an IP
 	ips, err := net.LookupIP(nodeName)
@@ -160,7 +160,7 @@ func (d *DiscoveryService) resolveNodeName(nodeName string) string {
 	return ""
 }
 
-// checkGoProxLBService checks if GoProxLB is running on a node
+// checkGoProxLBService checks if GoProxLB is running on a node.
 func (d *DiscoveryService) checkGoProxLBService(nodeIP string) bool {
 	if nodeIP == "" {
 		return false
@@ -178,7 +178,7 @@ func (d *DiscoveryService) checkGoProxLBService(nodeIP string) bool {
 	return true
 }
 
-// GetNodeAddress returns the full address for a node
+// GetNodeAddress returns the full address for a node.
 func (d *DiscoveryService) GetNodeAddress(nodeID string) (string, error) {
 	nodes, err := d.DiscoverClusterNodes()
 	if err != nil {
@@ -194,7 +194,7 @@ func (d *DiscoveryService) GetNodeAddress(nodeID string) (string, error) {
 	return "", fmt.Errorf("node %s not found or no IP available", nodeID)
 }
 
-// ValidateClusterTopology validates the cluster topology for Raft
+// ValidateClusterTopology validates the cluster topology for Raft.
 func (d *DiscoveryService) ValidateClusterTopology() error {
 	nodes, err := d.DiscoverClusterNodes()
 	if err != nil {

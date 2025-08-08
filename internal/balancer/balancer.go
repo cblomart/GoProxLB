@@ -12,7 +12,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/rules"
 )
 
-// Balancer represents the load balancer
+// Balancer represents the load balancer.
 type Balancer struct {
 	client  proxmox.ClientInterface
 	config  *config.Config
@@ -20,7 +20,7 @@ type Balancer struct {
 	lastRun time.Time
 }
 
-// NewBalancer creates a new load balancer
+// NewBalancer creates a new load balancer.
 func NewBalancer(client proxmox.ClientInterface, cfg *config.Config) *Balancer {
 	return &Balancer{
 		client:  client,
@@ -30,7 +30,7 @@ func NewBalancer(client proxmox.ClientInterface, cfg *config.Config) *Balancer {
 	}
 }
 
-// Run performs a load balancing cycle
+// Run performs a load balancing cycle.
 func (b *Balancer) Run(force bool) ([]models.BalancingResult, error) {
 	// Get current cluster state
 	nodes, err := b.client.GetNodes()
@@ -77,7 +77,7 @@ func (b *Balancer) Run(force bool) ([]models.BalancingResult, error) {
 	return results, nil
 }
 
-// filterAvailableNodes filters out nodes in maintenance mode
+// filterAvailableNodes filters out nodes in maintenance mode.
 func (b *Balancer) filterAvailableNodes(nodes []models.Node) []models.Node {
 	var available []models.Node
 
@@ -91,7 +91,7 @@ func (b *Balancer) filterAvailableNodes(nodes []models.Node) []models.Node {
 	return available
 }
 
-// isInMaintenance checks if a node is in maintenance mode
+// isInMaintenance checks if a node is in maintenance mode.
 func (b *Balancer) isInMaintenance(nodeName string) bool {
 	for _, maintenanceNode := range b.config.Cluster.MaintenanceNodes {
 		if maintenanceNode == nodeName {
@@ -101,7 +101,7 @@ func (b *Balancer) isInMaintenance(nodeName string) bool {
 	return false
 }
 
-// needsBalancing checks if the cluster needs balancing
+// needsBalancing checks if the cluster needs balancing.
 func (b *Balancer) needsBalancing(nodes []models.Node) bool {
 	for i := range nodes {
 		node := &nodes[i]
@@ -118,7 +118,7 @@ func (b *Balancer) needsBalancing(nodes []models.Node) bool {
 	return false
 }
 
-// calculateNodeScores calculates scores for all nodes
+// calculateNodeScores calculates scores for all nodes.
 func (b *Balancer) calculateNodeScores(nodes []models.Node) []models.NodeScore {
 	var scores []models.NodeScore
 
@@ -135,7 +135,7 @@ func (b *Balancer) calculateNodeScores(nodes []models.Node) []models.NodeScore {
 	return scores
 }
 
-// calculateNodeScore calculates a score for a single node
+// calculateNodeScore calculates a score for a single node.
 func (b *Balancer) calculateNodeScore(node *models.Node) models.NodeScore {
 	// Normalize resource usage (0-1 scale)
 	cpuScore := node.CPU.Usage / 100.0
@@ -163,7 +163,7 @@ func (b *Balancer) calculateNodeScore(node *models.Node) models.NodeScore {
 	}
 }
 
-// findMigrations finds VMs that should be migrated
+// findMigrations finds VMs that should be migrated.
 func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeScore) []models.Migration {
 	var migrations []models.Migration
 
@@ -216,7 +216,7 @@ func (b *Balancer) findMigrations(nodes []models.Node, nodeScores []models.NodeS
 	return migrations
 }
 
-// findBestTargetNode finds the best target node for a VM
+// findBestTargetNode finds the best target node for a VM.
 func (b *Balancer) findBestTargetNode(vm *models.VM, nodeScores []models.NodeScore) string {
 	// Get valid target nodes
 	var validNodes []string
@@ -244,7 +244,7 @@ func (b *Balancer) findBestTargetNode(vm *models.VM, nodeScores []models.NodeSco
 	return ""
 }
 
-// calculateResourceGain calculates the resource gain from migrating a VM
+// calculateResourceGain calculates the resource gain from migrating a VM.
 func (b *Balancer) calculateResourceGain(sourceNode, targetNode string, nodeScores []models.NodeScore) float64 {
 	var sourceScore, targetScore models.NodeScore
 
@@ -263,7 +263,7 @@ func (b *Balancer) calculateResourceGain(sourceNode, targetNode string, nodeScor
 	return math.Max(0, improvement)
 }
 
-// executeMigration executes a VM migration
+// executeMigration executes a VM migration.
 func (b *Balancer) executeMigration(migration *models.Migration) models.BalancingResult {
 	result := models.BalancingResult{
 		SourceNode: migration.FromNode,
@@ -296,7 +296,7 @@ func (b *Balancer) executeMigration(migration *models.Migration) models.Balancin
 	return result
 }
 
-// GetClusterStatus returns the current cluster status
+// GetClusterStatus returns the current cluster status.
 func (b *Balancer) GetClusterStatus() (*models.ClusterStatus, error) {
 	nodes, err := b.client.GetNodes()
 	if err != nil {

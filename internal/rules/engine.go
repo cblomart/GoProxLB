@@ -7,7 +7,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/models"
 )
 
-// Engine handles VM placement rules
+// Engine handles VM placement rules.
 type Engine struct {
 	affinityGroups     map[string]*models.AffinityGroup
 	antiAffinityGroups map[string]*models.AntiAffinityGroup
@@ -15,7 +15,7 @@ type Engine struct {
 	ignoredVMs         map[int]*models.IgnoredVM
 }
 
-// NewEngine creates a new rules engine
+// NewEngine creates a new rules engine.
 func NewEngine() *Engine {
 	return &Engine{
 		affinityGroups:     make(map[string]*models.AffinityGroup),
@@ -25,7 +25,7 @@ func NewEngine() *Engine {
 	}
 }
 
-// ProcessVMs processes all VMs and extracts rules
+// ProcessVMs processes all VMs and extracts rules.
 func (e *Engine) ProcessVMs(vms []models.VM) error {
 	e.affinityGroups = make(map[string]*models.AffinityGroup)
 	e.antiAffinityGroups = make(map[string]*models.AntiAffinityGroup)
@@ -39,7 +39,7 @@ func (e *Engine) ProcessVMs(vms []models.VM) error {
 	return nil
 }
 
-// processVM processes a single VM and extracts its rules
+// processVM processes a single VM and extracts its rules.
 func (e *Engine) processVM(vm *models.VM) {
 	for _, tag := range vm.Tags {
 		tag = strings.TrimSpace(tag)
@@ -57,7 +57,7 @@ func (e *Engine) processVM(vm *models.VM) {
 	}
 }
 
-// addAffinityRule adds a VM to an affinity group
+// addAffinityRule adds a VM to an affinity group.
 func (e *Engine) addAffinityRule(vm *models.VM, tag string) {
 	groupName := strings.TrimPrefix(tag, "plb_affinity_")
 
@@ -84,7 +84,7 @@ func (e *Engine) addAffinityRule(vm *models.VM, tag string) {
 	}
 }
 
-// addAntiAffinityRule adds a VM to an anti-affinity group
+// addAntiAffinityRule adds a VM to an anti-affinity group.
 func (e *Engine) addAntiAffinityRule(vm *models.VM, tag string) {
 	groupName := strings.TrimPrefix(tag, "plb_anti_affinity_")
 
@@ -111,7 +111,7 @@ func (e *Engine) addAntiAffinityRule(vm *models.VM, tag string) {
 	}
 }
 
-// addPinningRule adds a VM to the pinned VMs list
+// addPinningRule adds a VM to the pinned VMs list.
 func (e *Engine) addPinningRule(vm *models.VM, tag string) {
 	nodeName := strings.TrimPrefix(tag, "plb_pin_")
 
@@ -135,7 +135,7 @@ func (e *Engine) addPinningRule(vm *models.VM, tag string) {
 	}
 }
 
-// addIgnoreRule adds a VM to the ignored VMs list
+// addIgnoreRule adds a VM to the ignored VMs list.
 func (e *Engine) addIgnoreRule(vm *models.VM, tag string) {
 	ignoreTag := strings.TrimPrefix(tag, "plb_ignore_")
 
@@ -149,19 +149,19 @@ func (e *Engine) addIgnoreRule(vm *models.VM, tag string) {
 	e.ignoredVMs[vm.ID].Tags = append(e.ignoredVMs[vm.ID].Tags, ignoreTag)
 }
 
-// IsIgnored checks if a VM should be ignored
+// IsIgnored checks if a VM should be ignored.
 func (e *Engine) IsIgnored(vmID int) bool {
 	_, exists := e.ignoredVMs[vmID]
 	return exists
 }
 
-// IsPinned checks if a VM is pinned to specific nodes
+// IsPinned checks if a VM is pinned to specific nodes.
 func (e *Engine) IsPinned(vmID int) bool {
 	_, exists := e.pinnedVMs[vmID]
 	return exists
 }
 
-// GetPinnedNodes returns the nodes a VM is pinned to
+// GetPinnedNodes returns the nodes a VM is pinned to.
 func (e *Engine) GetPinnedNodes(vmID int) []string {
 	if pinned, exists := e.pinnedVMs[vmID]; exists {
 		return pinned.Nodes
@@ -169,27 +169,27 @@ func (e *Engine) GetPinnedNodes(vmID int) []string {
 	return nil
 }
 
-// GetAffinityGroups returns all affinity groups
+// GetAffinityGroups returns all affinity groups.
 func (e *Engine) GetAffinityGroups() map[string]*models.AffinityGroup {
 	return e.affinityGroups
 }
 
-// GetAntiAffinityGroups returns all anti-affinity groups
+// GetAntiAffinityGroups returns all anti-affinity groups.
 func (e *Engine) GetAntiAffinityGroups() map[string]*models.AntiAffinityGroup {
 	return e.antiAffinityGroups
 }
 
-// GetPinnedVMs returns all pinned VMs
+// GetPinnedVMs returns all pinned VMs.
 func (e *Engine) GetPinnedVMs() map[int]*models.PinnedVM {
 	return e.pinnedVMs
 }
 
-// GetIgnoredVMs returns all ignored VMs
+// GetIgnoredVMs returns all ignored VMs.
 func (e *Engine) GetIgnoredVMs() map[int]*models.IgnoredVM {
 	return e.ignoredVMs
 }
 
-// ValidatePlacement validates if a VM can be placed on a specific node
+// ValidatePlacement validates if a VM can be placed on a specific node.
 func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
 	// Check if VM is ignored
 	if e.IsIgnored(vm.ID) {
@@ -261,7 +261,7 @@ func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
 	return nil
 }
 
-// GetValidTargetNodes returns all valid target nodes for a VM
+// GetValidTargetNodes returns all valid target nodes for a VM.
 func (e *Engine) GetValidTargetNodes(vm *models.VM, availableNodes []string) []string {
 	var validNodes []string
 

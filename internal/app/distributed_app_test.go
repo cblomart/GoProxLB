@@ -11,7 +11,7 @@ import (
 	"github.com/cblomart/GoProxLB/internal/proxmox"
 )
 
-// MockClient implements ClientInterface for testing
+// MockClient implements ClientInterface for testing.
 type MockDistributedClient struct {
 	clusterInfo *models.Cluster
 	nodes       []models.Node
@@ -44,7 +44,7 @@ func (m *MockDistributedClient) GetVMHistoricalData(nodeName string, vmID int, v
 	return nil, m.err
 }
 
-// MockBalancer implements BalancerInterface for testing
+// MockBalancer implements BalancerInterface for testing.
 type MockDistributedBalancer struct {
 	results []models.BalancingResult
 	err     error
@@ -118,7 +118,7 @@ func (m *MockDistributedBalancer) GetClusterRecommendations() (map[string]interf
 	}, m.err
 }
 
-// createTestDistributedApp creates a distributed app for testing with temporary directories
+// createTestDistributedApp creates a distributed app for testing with temporary directories.
 func createTestDistributedApp(t *testing.T, port int) (*DistributedApp, string) {
 	tempDir := t.TempDir()
 	configPath := tempDir + "/config.yaml"
