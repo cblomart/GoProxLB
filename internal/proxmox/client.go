@@ -27,11 +27,15 @@ type Client struct {
 
 // NewClient creates a new Proxmox API client.
 func NewClient(cfg *config.ProxmoxConfig) *Client {
+	// Only allow insecure connections for localhost/127.0.0.1 for security
+	allowInsecure := cfg.Insecure && (strings.Contains(cfg.Host, "localhost") ||
+		strings.Contains(cfg.Host, "127.0.0.1") || strings.Contains(cfg.Host, "::1"))
+
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: cfg.Insecure,
+				InsecureSkipVerify: allowInsecure,
 			},
 		},
 	}

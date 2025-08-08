@@ -58,58 +58,55 @@ func (e *Engine) processVM(vm *models.VM) {
 	}
 }
 
-// addAffinityRule adds a VM to an affinity group.
-func (e *Engine) addAffinityRule(vm *models.VM, tag string) {
-	groupName := strings.TrimPrefix(tag, "plb_affinity_")
-
-	if e.affinityGroups[groupName] == nil {
-		e.affinityGroups[groupName] = &models.AffinityGroup{
-			Tag:   groupName,
-			VMs:   []models.VM{},
-			Nodes: []string{},
+// addVMToGroup adds a VM to a group and ensures the node is tracked.
+func (e *Engine) addVMToGroup(vm *models.VM, groupName string, isAffinity bool) {
+	if isAffinity {
+		if e.affinityGroups[groupName] == nil {
+			e.affinityGroups[groupName] = &models.AffinityGroup{
+				Tag:   groupName,
+				VMs:   []models.VM{},
+				Nodes: []string{},
+			}
 		}
+		e.affinityGroups[groupName].VMs = append(e.affinityGroups[groupName].VMs, *vm)
+		e.addNodeToGroup(vm.Node, e.affinityGroups[groupName].Nodes)
+	} else {
+		if e.antiAffinityGroups[groupName] == nil {
+			e.antiAffinityGroups[groupName] = &models.AntiAffinityGroup{
+				Tag:   groupName,
+				VMs:   []models.VM{},
+				Nodes: []string{},
+			}
+		}
+		e.antiAffinityGroups[groupName].VMs = append(e.antiAffinityGroups[groupName].VMs, *vm)
+		e.addNodeToGroup(vm.Node, e.antiAffinityGroups[groupName].Nodes)
 	}
+}
 
-	e.affinityGroups[groupName].VMs = append(e.affinityGroups[groupName].VMs, *vm)
-
-	// Add node if not already present
+// addNodeToGroup adds a node to a group's node list if not already present.
+func (e *Engine) addNodeToGroup(nodeName string, nodes []string) {
 	nodeExists := false
-	for _, node := range e.affinityGroups[groupName].Nodes {
-		if node == vm.Node {
+	for _, node := range nodes {
+		if node == nodeName {
 			nodeExists = true
 			break
 		}
 	}
 	if !nodeExists {
-		e.affinityGroups[groupName].Nodes = append(e.affinityGroups[groupName].Nodes, vm.Node)
+		nodes = append(nodes, nodeName)
 	}
+}
+
+// addAffinityRule adds a VM to an affinity group.
+func (e *Engine) addAffinityRule(vm *models.VM, tag string) {
+	groupName := strings.TrimPrefix(tag, "plb_affinity_")
+	e.addVMToGroup(vm, groupName, true)
 }
 
 // addAntiAffinityRule adds a VM to an anti-affinity group.
 func (e *Engine) addAntiAffinityRule(vm *models.VM, tag string) {
 	groupName := strings.TrimPrefix(tag, "plb_anti_affinity_")
-
-	if e.antiAffinityGroups[groupName] == nil {
-		e.antiAffinityGroups[groupName] = &models.AntiAffinityGroup{
-			Tag:   groupName,
-			VMs:   []models.VM{},
-			Nodes: []string{},
-		}
-	}
-
-	e.antiAffinityGroups[groupName].VMs = append(e.antiAffinityGroups[groupName].VMs, *vm)
-
-	// Add node if not already present
-	nodeExists := false
-	for _, node := range e.antiAffinityGroups[groupName].Nodes {
-		if node == vm.Node {
-			nodeExists = true
-			break
-		}
-	}
-	if !nodeExists {
-		e.antiAffinityGroups[groupName].Nodes = append(e.antiAffinityGroups[groupName].Nodes, vm.Node)
-	}
+	e.addVMToGroup(vm, groupName, false)
 }
 
 // addPinningRule adds a VM to the pinned VMs list.

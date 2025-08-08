@@ -144,7 +144,7 @@ balancing:
   aggressiveness: "low"
 `, port, tempDir)
 
-	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	err := os.WriteFile(configPath, []byte(configContent), 0600)
 	if err != nil {
 		t.Fatalf("Failed to create config file: %v", err)
 	}
@@ -205,7 +205,7 @@ balancing:
   aggressiveness: "low"
 `
 
-	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	err := os.WriteFile(configPath, []byte(configContent), 0600)
 	if err != nil {
 		t.Fatalf("Failed to create config file: %v", err)
 	}
@@ -242,7 +242,7 @@ balancing:
   aggressiveness: "low"
 `
 
-	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	err := os.WriteFile(configPath, []byte(configContent), 0600)
 	if err != nil {
 		t.Fatalf("Failed to create config file: %v", err)
 	}
