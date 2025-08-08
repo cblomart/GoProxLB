@@ -119,6 +119,8 @@ func (m *MockDistributedBalancer) GetClusterRecommendations() (map[string]interf
 }
 
 // createTestDistributedApp creates a distributed app for testing with temporary directories.
+//
+//nolint:unparam // tempDir is used internally but not needed by callers
 func createTestDistributedApp(t *testing.T, port int) (app *DistributedApp, tempDir string) {
 	tempDir = t.TempDir()
 	configPath := tempDir + "/config.yaml"
