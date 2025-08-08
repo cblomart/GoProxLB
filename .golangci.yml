@@ -4,6 +4,9 @@ run:
   modules-download-mode: readonly
   exclude-dirs:
     - .github
+    - /opt/hostedtoolcache
+    - /usr/local/go
+    - /usr/lib/go
 
 linters:
   enable:
@@ -72,6 +75,15 @@ issues:
       linters:
         - gomnd
         - gocyclo
+    - path: /opt/hostedtoolcache/.*
+      linters:
+        - typecheck
+    - path: /usr/local/go/.*
+      linters:
+        - typecheck
+    - path: /usr/lib/go/.*
+      linters:
+        - typecheck
 
   max-issues-per-linter: 0
   max-same-issues: 0
