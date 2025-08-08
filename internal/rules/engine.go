@@ -69,7 +69,7 @@ func (e *Engine) addVMToGroup(vm *models.VM, groupName string, isAffinity bool) 
 			}
 		}
 		e.affinityGroups[groupName].VMs = append(e.affinityGroups[groupName].VMs, *vm)
-		e.addNodeToGroup(vm.Node, e.affinityGroups[groupName].Nodes)
+		e.addNodeToGroup(vm.Node, &e.affinityGroups[groupName].Nodes)
 	} else {
 		if e.antiAffinityGroups[groupName] == nil {
 			e.antiAffinityGroups[groupName] = &models.AntiAffinityGroup{
@@ -79,21 +79,21 @@ func (e *Engine) addVMToGroup(vm *models.VM, groupName string, isAffinity bool) 
 			}
 		}
 		e.antiAffinityGroups[groupName].VMs = append(e.antiAffinityGroups[groupName].VMs, *vm)
-		e.addNodeToGroup(vm.Node, e.antiAffinityGroups[groupName].Nodes)
+		e.addNodeToGroup(vm.Node, &e.antiAffinityGroups[groupName].Nodes)
 	}
 }
 
 // addNodeToGroup adds a node to a group's node list if not already present.
-func (e *Engine) addNodeToGroup(nodeName string, nodes []string) {
+func (e *Engine) addNodeToGroup(nodeName string, nodes *[]string) {
 	nodeExists := false
-	for _, node := range nodes {
+	for _, node := range *nodes {
 		if node == nodeName {
 			nodeExists = true
 			break
 		}
 	}
 	if !nodeExists {
-		nodes = append(nodes, nodeName)
+		*nodes = append(*nodes, nodeName)
 	}
 }
 
