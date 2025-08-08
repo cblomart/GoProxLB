@@ -53,7 +53,7 @@ func TestNewDiscoveryService(t *testing.T) {
 	testServiceProperties(t, service, mockClient, port)
 }
 
-// testServiceProperties tests that the service has the expected properties
+// testServiceProperties tests that the service has the expected properties.
 func testServiceProperties(t *testing.T, service *DiscoveryService, mockClient ClientInterface, port int) {
 	if service.client != mockClient {
 		t.Errorf("Expected client %v, got %v", mockClient, service.client)

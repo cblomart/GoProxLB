@@ -256,7 +256,7 @@ func TestNewClient(t *testing.T) {
 	testClientProperties(t, client, cfg)
 }
 
-// testClientProperties tests that the client has the expected properties
+// testClientProperties tests that the client has the expected properties.
 func testClientProperties(t *testing.T, client *Client, cfg *config.ProxmoxConfig) {
 	if client.host != cfg.Host {
 		t.Errorf("Expected host %s, got %s", cfg.Host, client.host)
@@ -283,7 +283,7 @@ func TestNewClientWithToken(t *testing.T) {
 	testClientToken(t, client, cfg)
 }
 
-// testClientToken tests that the client has the expected token
+// testClientToken tests that the client has the expected token.
 func testClientToken(t *testing.T, client *Client, cfg *config.ProxmoxConfig) {
 	if client.token != cfg.Token {
 		t.Errorf("Expected token %s, got %s", cfg.Token, client.token)
@@ -305,7 +305,7 @@ func TestNewClientLocalAccess(t *testing.T) {
 	testClientHost(t, client, cfg)
 }
 
-// testClientHost tests that the client has the expected host
+// testClientHost tests that the client has the expected host.
 func testClientHost(t *testing.T, client *Client, cfg *config.ProxmoxConfig) {
 	if client.host != cfg.Host {
 		t.Errorf("Expected host %s, got %s", cfg.Host, client.host)
