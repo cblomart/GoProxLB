@@ -28,7 +28,6 @@ linters:
     - nolintlint
     - rowserrcheck
     - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - whitespace
