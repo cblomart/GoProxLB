@@ -32,8 +32,9 @@ func (e *Engine) ProcessVMs(vms []models.VM) error {
 	e.pinnedVMs = make(map[int]*models.PinnedVM)
 	e.ignoredVMs = make(map[int]*models.IgnoredVM)
 
-	for _, vm := range vms {
-		e.processVM(&vm)
+	for i := range vms {
+		vm := &vms[i]
+		e.processVM(vm)
 	}
 
 	return nil
@@ -213,12 +214,14 @@ func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
 
 	// Check affinity rules
 	for _, group := range e.affinityGroups {
-		for _, groupVM := range group.VMs {
+		for i := range group.VMs {
+			groupVM := &group.VMs[i]
 			if groupVM.ID == vm.ID {
 				// This VM is part of an affinity group
 				// Check if any other VM in the group is on the target node
 				hasAffinityVM := false
-				for _, otherVM := range group.VMs {
+				for j := range group.VMs {
+					otherVM := &group.VMs[j]
 					if otherVM.ID != vm.ID && otherVM.Node == targetNode {
 						hasAffinityVM = true
 						break
@@ -227,7 +230,8 @@ func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
 				if !hasAffinityVM {
 					// Check if there are other VMs in the group that are not on the target node
 					otherVMsOnDifferentNodes := false
-					for _, otherVM := range group.VMs {
+					for k := range group.VMs {
+						otherVM := &group.VMs[k]
 						if otherVM.ID != vm.ID && otherVM.Node != targetNode {
 							otherVMsOnDifferentNodes = true
 							break
@@ -244,11 +248,13 @@ func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
 
 	// Check anti-affinity rules
 	for _, group := range e.antiAffinityGroups {
-		for _, groupVM := range group.VMs {
+		for i := range group.VMs {
+			groupVM := &group.VMs[i]
 			if groupVM.ID == vm.ID {
 				// This VM is part of an anti-affinity group
 				// Check if any other VM in the group is on the target node
-				for _, otherVM := range group.VMs {
+				for j := range group.VMs {
+					otherVM := &group.VMs[j]
 					if otherVM.ID != vm.ID && otherVM.Node == targetNode {
 						return fmt.Errorf("VM %s is part of anti-affinity group %s, but another VM in the group is already on %s", vm.Name, group.Tag, targetNode)
 					}

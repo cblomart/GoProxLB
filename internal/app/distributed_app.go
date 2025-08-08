@@ -325,7 +325,8 @@ func (d *DistributedApp) runBalancingCycle() error {
 	}
 
 	fmt.Printf("Executed %d migrations:\n", len(results))
-	for _, result := range results {
+	for i := range results {
+		result := &results[i]
 		if result.Success {
 			fmt.Printf("  ✓ Migrated VM %s (%d) from %s to %s (gain: %.2f)\n",
 				result.VM.Name, result.VM.ID, result.SourceNode, result.TargetNode, result.ResourceGain)

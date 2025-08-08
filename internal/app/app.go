@@ -235,7 +235,8 @@ func (app *App) runBalancingCycle() error {
 	}
 
 	fmt.Printf("Executed %d migrations:\n", len(results))
-	for _, result := range results {
+	for i := range results {
+		result := &results[i]
 		if result.Success {
 			fmt.Printf("  ✓ Migrated VM %s (%d) from %s to %s (gain: %.2f)\n",
 				result.VM.Name, result.VM.ID, result.SourceNode, result.TargetNode, result.ResourceGain)
@@ -322,7 +323,8 @@ func ShowClusterInfo(configPath string) error {
 	}
 
 	fmt.Println("\n=== Node Details ===")
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		fmt.Printf("Node: %s\n", node.Name)
 		fmt.Printf("  Status: %s\n", node.Status)
 		fmt.Printf("  CPU: %.1f%% (%d cores)\n", node.CPU.Usage, node.CPU.Cores)
@@ -367,7 +369,8 @@ func ListVMs(configPath string) error {
 	totalVMs := 0
 	runningVMs := 0
 
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		fmt.Printf("\nNode: %s\n", node.Name)
 		fmt.Printf("  Status: %s\n", node.Status)
 
@@ -377,7 +380,8 @@ func ListVMs(configPath string) error {
 		}
 
 		fmt.Printf("  VMs (%d):\n", len(node.VMs))
-		for _, vm := range node.VMs {
+		for j := range node.VMs {
+			vm := &node.VMs[j]
 			totalVMs++
 			status := "stopped"
 			if vm.Status == vmStatusRunning {
@@ -422,7 +426,8 @@ func ForceBalance(configPath string, force bool) error {
 	}
 
 	fmt.Printf("Balance operation completed. %d migrations executed:\n", len(results))
-	for _, result := range results {
+	for i := range results {
+		result := &results[i]
 		if result.Success {
 			fmt.Printf("  ✓ Migrated VM %d from %s to %s\n", result.VM.ID, result.SourceNode, result.TargetNode)
 		} else {
@@ -470,7 +475,8 @@ func ForceBalanceWithBalancerType(configPath string, force bool, balancerType st
 	}
 
 	fmt.Printf("Balance operation completed. %d migrations executed:\n", len(results))
-	for _, result := range results {
+	for i := range results {
+		result := &results[i]
 		if result.Success {
 			fmt.Printf("  ✓ Migrated VM %d from %s to %s\n", result.VM.ID, result.SourceNode, result.TargetNode)
 		} else {
@@ -537,7 +543,8 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csv
 	recommendationCounter := 1
 
 	// Analyze each node
-	for _, node := range nodes {
+	for i := range nodes {
+		node := &nodes[i]
 		fmt.Printf("📊 Node: %s\n", node.Name)
 		fmt.Printf("   Status: %s\n", node.Status)
 
@@ -634,17 +641,19 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csv
 
 			// Group VMs by workload type for cleaner output
 			workloadGroups := make(map[string][]models.VM)
-			for _, vm := range node.VMs {
-				vmProfile := balancer.AnalyzeVMProfile(vm, node.Name)
+			for j := range node.VMs {
+				vm := &node.VMs[j]
+				vmProfile := balancer.AnalyzeVMProfile(*vm, node.Name)
 				workloadType := vmProfile.WorkloadType
-				workloadGroups[workloadType] = append(workloadGroups[workloadType], vm)
+				workloadGroups[workloadType] = append(workloadGroups[workloadType], *vm)
 			}
 
 			// Show VMs grouped by workload type and generate VM adaptation recommendations
 			for workloadType, vms := range workloadGroups {
 				fmt.Printf("     %s (%d VMs):\n", workloadType, len(vms))
-				for _, vm := range vms {
-					vmProfile := balancer.AnalyzeVMProfile(vm, node.Name)
+				for k := range vms {
+					vm := &vms[k]
+					vmProfile := balancer.AnalyzeVMProfile(*vm, node.Name)
 					fmt.Printf("       🖥️  %s (ID: %d) - %s\n", vm.Name, vm.ID, vm.Status)
 
 					// Generate VM-specific adaptation recommendations
@@ -673,7 +682,7 @@ func ShowCapacityPlanning(configPath string, detailed bool, forecast string, csv
 					// Add priority adjustments
 					if vmProfile.Criticality == "Critical" {
 						recommendedCPU = int(float64(recommendedCPU) * 1.2) // 20% more for critical
-						recommendedMemoryGB *= 1.2     // 20% more for critical
+						recommendedMemoryGB *= 1.2                          // 20% more for critical
 					}
 
 					// Only add recommendation if there's a significant difference
