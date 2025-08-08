@@ -976,6 +976,7 @@ WantedBy=multi-user.target
 	createUserAndGroup(user, group)
 
 	// Write the service file
+	//nolint:gosec // Systemd service files need to be readable by systemd (0644 is correct)
 	if err := os.WriteFile(serviceFilePath, []byte(serviceContent), 0644); err != nil {
 		return fmt.Errorf("failed to write service file %s: %w", serviceFilePath, err)
 	}

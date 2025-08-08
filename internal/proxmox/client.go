@@ -35,6 +35,7 @@ func NewClient(cfg *config.ProxmoxConfig) *Client {
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
+				//nolint:gosec // InsecureSkipVerify is conditionally allowed for localhost only
 				InsecureSkipVerify: allowInsecure,
 			},
 		},
