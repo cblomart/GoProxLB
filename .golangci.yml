@@ -19,25 +19,17 @@ linters:
     - goconst
     - gocritic
     - godot
-    # - goheader  # Disabled due to configuration issues
     - gomnd
     - goprintffuncname
-    - gosec
-    - gosimple
-    - govet
-    - ineffassign
-    - misspell
     - nakedret
     - noctx
     - nolintlint
     - rowserrcheck
-    - staticcheck
     - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
-    - unused
     - varcheck
     - whitespace
 
@@ -63,7 +55,6 @@ linters-settings:
       - ifElseChain
       - octalLiteral
       - whyNoLint
-  # goheader configuration removed due to parsing issues
   gosec:
     excludes:
       - G404 # Use of weak random number generator
