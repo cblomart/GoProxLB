@@ -19,18 +19,15 @@ linters:
     - goconst
     - gocritic
     - godot
-    - gomnd
     - goprintffuncname
     - nakedret
     - noctx
     - nolintlint
     - rowserrcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
-    - varcheck
     - whitespace
 
 linters-settings:
@@ -41,8 +38,7 @@ linters-settings:
   goconst:
     min-len: 3
     min-occurrences: 3
-  gomnd:
-    checks: argument,case,condition,operation,return,assign
+
   gocritic:
     enabled-tags:
       - diagnostic
