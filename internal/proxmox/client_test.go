@@ -252,6 +252,12 @@ func TestNewClient(t *testing.T) {
 		t.Fatal("Expected client to be created")
 	}
 
+	// Test client properties after nil check
+	testClientProperties(t, client, cfg)
+}
+
+// testClientProperties tests that the client has the expected properties
+func testClientProperties(t *testing.T, client *Client, cfg *config.ProxmoxConfig) {
 	if client.host != cfg.Host {
 		t.Errorf("Expected host %s, got %s", cfg.Host, client.host)
 	}
@@ -273,6 +279,12 @@ func TestNewClientWithToken(t *testing.T) {
 		t.Fatal("Expected client to be created")
 	}
 
+	// Test client token after nil check
+	testClientToken(t, client, cfg)
+}
+
+// testClientToken tests that the client has the expected token
+func testClientToken(t *testing.T, client *Client, cfg *config.ProxmoxConfig) {
 	if client.token != cfg.Token {
 		t.Errorf("Expected token %s, got %s", cfg.Token, client.token)
 	}
@@ -289,6 +301,12 @@ func TestNewClientLocalAccess(t *testing.T) {
 		t.Fatal("Expected client to be created")
 	}
 
+	// Test client host after nil check
+	testClientHost(t, client, cfg)
+}
+
+// testClientHost tests that the client has the expected host
+func testClientHost(t *testing.T, client *Client, cfg *config.ProxmoxConfig) {
 	if client.host != cfg.Host {
 		t.Errorf("Expected host %s, got %s", cfg.Host, client.host)
 	}

@@ -168,6 +168,12 @@ func TestNewBalancer(t *testing.T) {
 		t.Fatal("Expected balancer to be created")
 	}
 
+	// Test balancer properties after nil check
+	testBalancerProperties(t, balancer, cfg, client)
+}
+
+// testBalancerProperties tests that the balancer has the expected properties
+func testBalancerProperties(t *testing.T, balancer *Balancer, cfg *config.Config, client proxmox.ClientInterface) {
 	if balancer.config != cfg {
 		t.Error("Expected config to be set")
 	}
@@ -427,6 +433,12 @@ func TestGetClusterStatus(t *testing.T) {
 		t.Fatal("Expected cluster status")
 	}
 
+	// Test status properties after nil check
+	testStatusProperties(t, status)
+}
+
+// testStatusProperties tests that the status has the expected properties
+func testStatusProperties(t *testing.T, status *models.ClusterStatus) {
 	if status.TotalNodes != 3 {
 		t.Errorf("Expected 3 total nodes, got %d", status.TotalNodes)
 	}

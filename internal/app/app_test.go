@@ -252,6 +252,12 @@ func TestNewAppWithDependencies(t *testing.T) {
 		t.Fatal("Expected app to be created")
 	}
 
+	// Test app properties after nil check
+	testAppProperties(t, app, cfg, client, balancer)
+}
+
+// testAppProperties tests that the app has the expected properties
+func testAppProperties(t *testing.T, app *App, cfg *config.Config, client ClientInterface, balancer BalancerInterface) {
 	if app.config != cfg {
 		t.Error("Expected config to be set correctly")
 	}
