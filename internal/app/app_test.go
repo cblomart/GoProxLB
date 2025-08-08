@@ -773,7 +773,7 @@ func StartWithBalancerTypeWithDependencies(configPath, balancerType string, conf
 
 		// Recreate the balancer with the new type
 		// Recreate the balancer with the new type
-			app.balancer = balancer
+		app.balancer = balancer
 	}
 
 	// Just return success for testing - we don't actually start the daemon
@@ -796,7 +796,7 @@ func ForceBalanceWithBalancerTypeWithDependencies(configPath string, force bool,
 
 		// Recreate the balancer with the new type
 		// Recreate the balancer with the new type
-			app.balancer = balancer
+		app.balancer = balancer
 	}
 
 	// Run the balance operation

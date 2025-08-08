@@ -97,7 +97,7 @@ func (m *MockDistributedBalancer) GetResourceRecommendations(nodeName string) (m
 	}, m.err
 }
 
-func (m *MockDistributedBalancer) AnalyzeVMProfile(vm models.VM) (*balancer.VMProfile, error) {
+func (m *MockDistributedBalancer) AnalyzeVMProfile(vm *models.VM) (*balancer.VMProfile, error) {
 	return &balancer.VMProfile{
 		WorkloadType:    "interactive",
 		Pattern:         "steady",
@@ -119,8 +119,8 @@ func (m *MockDistributedBalancer) GetClusterRecommendations() (map[string]interf
 }
 
 // createTestDistributedApp creates a distributed app for testing with temporary directories.
-func createTestDistributedApp(t *testing.T, port int) (*DistributedApp, string) {
-	tempDir := t.TempDir()
+func createTestDistributedApp(t *testing.T, port int) (app *DistributedApp, tempDir string) {
+	tempDir = t.TempDir()
 	configPath := tempDir + "/config.yaml"
 
 	configContent := fmt.Sprintf(`
@@ -151,7 +151,7 @@ balancing:
 
 	// Use a shorter socket path for testing
 	socketDir := "/tmp/goproxlb-test"
-	app, err := NewDistributedAppWithSocketDir(configPath, socketDir)
+	app, err = NewDistributedAppWithSocketDir(configPath, socketDir)
 	if err != nil {
 		t.Fatalf("Failed to create distributed app: %v", err)
 	}

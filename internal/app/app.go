@@ -1129,6 +1129,7 @@ func createUserAndGroup(user, group string) {
 // setOwnership sets the ownership of directories to the specified user and group.
 func setOwnership(user, group string, dirs []string) {
 	for _, dir := range dirs {
+		// nolint:gosec // This is a legitimate system administration task
 		cmd := exec.Command("chown", user+":"+group, dir)
 		if err := cmd.Run(); err != nil {
 			// Ignore ownership errors, might not have permissions
