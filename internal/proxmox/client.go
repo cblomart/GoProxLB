@@ -1,3 +1,4 @@
+// Package proxmox provides client functionality for interacting with Proxmox VE APIs.
 package proxmox
 
 import (

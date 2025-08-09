@@ -1,3 +1,4 @@
+// Package app provides the main application logic and command handling for GoProxLB.
 package app
 
 import (
@@ -488,270 +489,19 @@ func ForceBalanceWithBalancerType(configPath string, force bool, balancerType st
 }
 
 // ShowCapacityPlanning shows detailed capacity planning information.
-//
-//nolint:gocyclo // Complex capacity planning display logic with multiple output formats
 func ShowCapacityPlanning(configPath string, detailed bool, forecast, csvOutput string) error {
-	// Load configuration
-	cfg, err := config.Load(configPath)
+	context, err := setupCapacityPlanningContext(configPath, forecast, csvOutput)
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return err
 	}
 
-	// Create Proxmox client
-	client := proxmox.NewClient(&cfg.Proxmox)
+	printCapacityPlanningHeader(context.forecastDuration)
 
-	// Get cluster information
-	nodes, err := client.GetNodes()
-	if err != nil {
-		return fmt.Errorf("failed to get nodes: %w", err)
-	}
+	// Analyze all nodes and collect recommendations
+	adaptationRecommendations := analyzeNodesForCapacityPlanning(context, detailed)
 
-	// Create advanced balancer for capacity analysis
-	balancer := balancer.NewAdvancedBalancer(client, cfg)
-
-	// Parse forecast period
-	forecastDuration, err := time.ParseDuration(forecast)
-	if err != nil {
-		// Try parsing as weeks/months
-		if strings.HasSuffix(forecast, "w") {
-			weeks, _ := strconv.Atoi(strings.TrimSuffix(forecast, "w"))
-			forecastDuration = time.Duration(weeks) * 7 * 24 * time.Hour
-		} else if strings.HasSuffix(forecast, "m") {
-			months, _ := strconv.Atoi(strings.TrimSuffix(forecast, "m"))
-			forecastDuration = time.Duration(months) * 30 * 24 * time.Hour
-		} else {
-			forecastDuration = 7 * 24 * time.Hour // Default to 1 week
-		}
-	}
-
-	// Prepare CSV data if output is requested
-	var csvData [][]string
-	if csvOutput != "" {
-		// CSV headers
-		csvData = append(csvData, []string{
-			"Type", "Name", "ID", "Status", "WorkloadType", "CurrentCPU%", "CurrentMemory%", "CurrentStorage%",
-			"P90CPU%", "P95CPU%", "P99CPU%", "PredictedCPU%", "PredictedMemory%", "CurrentCPUCores", "CurrentMemoryGB",
-			"RecommendedCPUCores", "RecommendedMemoryGB", "Criticality", "Pattern", "Recommendations",
-		})
-	}
-
-	fmt.Printf("🔍 Capacity Planning Analysis\n")
-	fmt.Printf("============================\n")
-	fmt.Printf("Forecast Period: %s\n", forecastDuration.String())
-	fmt.Printf("Analysis Date: %s\n\n", time.Now().Format("2006-01-02 15:04:05"))
-
-	// Track adaptation recommendations
-	var adaptationRecommendations []string
-	recommendationCounter := 1
-
-	// Analyze each node
-	for i := range nodes {
-		node := &nodes[i]
-		fmt.Printf("📊 Node: %s\n", node.Name)
-		fmt.Printf("   Status: %s\n", node.Status)
-
-		// Get capacity metrics
-		metrics, hasMetrics := balancer.GetCapacityMetrics(node.Name)
-		if hasMetrics {
-			fmt.Printf("   Current CPU: %.1f%% | Memory: %.1f%% | Storage: %.1f%%\n",
-				node.CPU.Usage, node.Memory.Usage, node.Storage.Usage)
-			fmt.Printf("   P90 CPU: %.1f%% | P95 CPU: %.1f%% | P99 CPU: %.1f%%\n",
-				metrics.P90, metrics.P95, metrics.P99)
-
-			// Predict evolution
-			predictedCPU := balancer.PredictResourceEvolution(node.Name, "cpu", forecastDuration)
-			predictedMemory := balancer.PredictResourceEvolution(node.Name, "memory", forecastDuration)
-
-			fmt.Printf("   Predicted CPU (%s): %.1f%% | Memory: %.1f%%\n",
-				forecastDuration.String(), predictedCPU, predictedMemory)
-
-			// Generate node adaptation recommendations
-			if predictedCPU > 90 {
-				currentCores := node.CPU.Cores
-				recommendedCores := int(float64(currentCores) * (predictedCPU / 80.0)) // Target 80% usage
-				if recommendedCores > currentCores {
-					adaptationRecommendations = append(adaptationRecommendations,
-						fmt.Sprintf("%d. Node %s: Increase CPU from %d to %d cores",
-							recommendationCounter, node.Name, currentCores, recommendedCores))
-					recommendationCounter++
-				}
-			}
-
-			if predictedMemory > 90 {
-				currentMemoryGB := float64(node.Memory.Total) / 1024 / 1024 / 1024
-				recommendedMemoryGB := currentMemoryGB * (predictedMemory / 80.0) // Target 80% usage
-				if recommendedMemoryGB > currentMemoryGB {
-					adaptationRecommendations = append(adaptationRecommendations,
-						fmt.Sprintf("%d. Node %s: Increase memory from %.1f to %.1f GB",
-							recommendationCounter, node.Name, currentMemoryGB, recommendedMemoryGB))
-					recommendationCounter++
-				}
-			}
-
-			// Get recommendations
-			recommendations := balancer.GetResourceRecommendations(node.Name, detailed)
-			fmt.Printf("   Recommendations:\n")
-			for _, rec := range recommendations {
-				fmt.Printf("     • %s\n", rec)
-			}
-
-			// Add node data to CSV
-			if csvOutput != "" {
-				currentMemoryGB := float64(node.Memory.Total) / 1024 / 1024 / 1024
-				recommendedCores := node.CPU.Cores
-				recommendedMemoryGB := currentMemoryGB
-
-				if predictedCPU > 90 {
-					recommendedCores = int(float64(node.CPU.Cores) * (predictedCPU / 80.0))
-				}
-				if predictedMemory > 90 {
-					recommendedMemoryGB = currentMemoryGB * (predictedMemory / 80.0)
-				}
-
-				csvData = append(csvData, []string{
-					"Node", node.Name, "", node.Status, "",
-					fmt.Sprintf("%.1f", node.CPU.Usage), fmt.Sprintf("%.1f", node.Memory.Usage), fmt.Sprintf("%.1f", node.Storage.Usage),
-					fmt.Sprintf("%.1f", metrics.P90), fmt.Sprintf("%.1f", metrics.P95), fmt.Sprintf("%.1f", metrics.P99),
-					fmt.Sprintf("%.1f", predictedCPU), fmt.Sprintf("%.1f", predictedMemory),
-					fmt.Sprintf("%d", node.CPU.Cores), fmt.Sprintf("%.1f", currentMemoryGB),
-					fmt.Sprintf("%d", recommendedCores), fmt.Sprintf("%.1f", recommendedMemoryGB),
-					"", "", strings.Join(recommendations, "; "),
-				})
-			}
-		} else {
-			fmt.Printf("   Current CPU: %.1f%% | Memory: %.1f%% | Storage: %.1f%%\n",
-				node.CPU.Usage, node.Memory.Usage, node.Storage.Usage)
-			fmt.Printf("   ⚠️  No historical data available for capacity planning\n")
-
-			// Add node data to CSV (without historical metrics)
-			if csvOutput != "" {
-				currentMemoryGB := float64(node.Memory.Total) / 1024 / 1024 / 1024
-				csvData = append(csvData, []string{
-					"Node", node.Name, "", node.Status, "",
-					fmt.Sprintf("%.1f", node.CPU.Usage), fmt.Sprintf("%.1f", node.Memory.Usage), fmt.Sprintf("%.1f", node.Storage.Usage),
-					"", "", "", "", "",
-					fmt.Sprintf("%d", node.CPU.Cores), fmt.Sprintf("%.1f", currentMemoryGB),
-					fmt.Sprintf("%d", node.CPU.Cores), fmt.Sprintf("%.1f", currentMemoryGB),
-					"", "", "No historical data available",
-				})
-			}
-		}
-
-		// Analyze VMs on this node
-		if len(node.VMs) > 0 {
-			fmt.Printf("   VMs (%d):\n", len(node.VMs))
-
-			// Group VMs by workload type for cleaner output
-			workloadGroups := make(map[string][]models.VM)
-			for j := range node.VMs {
-				vm := &node.VMs[j]
-				vmProfile := balancer.AnalyzeVMProfile(vm, node.Name)
-				workloadType := vmProfile.WorkloadType
-				workloadGroups[workloadType] = append(workloadGroups[workloadType], *vm)
-			}
-
-			// Show VMs grouped by workload type and generate VM adaptation recommendations
-			for workloadType, vms := range workloadGroups {
-				fmt.Printf("     %s (%d VMs):\n", workloadType, len(vms))
-				for k := range vms {
-					vm := &vms[k]
-					vmProfile := balancer.AnalyzeVMProfile(vm, node.Name)
-					fmt.Printf("       🖥️  %s (ID: %d) - %s\n", vm.Name, vm.ID, vm.Status)
-
-					// Generate VM-specific adaptation recommendations
-					currentCPU := int(vm.CPU)
-					currentMemoryGB := float64(vm.Memory) / 1024 / 1024 / 1024
-
-					// Calculate recommended resources based on workload type
-					var recommendedCPU int
-					var recommendedMemoryGB float64
-
-					switch workloadType {
-					case "Burst":
-						recommendedCPU = int(float64(currentCPU) * 1.4) // 40% more for burst
-						recommendedMemoryGB = currentMemoryGB * 1.3     // 30% more for burst
-					case "Sustained":
-						recommendedCPU = int(float64(currentCPU) * 1.2) // 20% more for sustained
-						recommendedMemoryGB = currentMemoryGB * 1.2     // 20% more for sustained
-					case "Idle":
-						recommendedCPU = int(float64(currentCPU) * 1.1) // 10% more for idle
-						recommendedMemoryGB = currentMemoryGB * 1.1     // 10% more for idle
-					default:
-						recommendedCPU = int(float64(currentCPU) * 1.25) // 25% more default
-						recommendedMemoryGB = currentMemoryGB * 1.25     // 25% more default
-					}
-
-					// Add priority adjustments
-					if vmProfile.Criticality == "Critical" {
-						recommendedCPU = int(float64(recommendedCPU) * 1.2) // 20% more for critical
-						recommendedMemoryGB *= 1.2                          // 20% more for critical
-					}
-
-					// Only add recommendation if there's a significant difference
-					if recommendedCPU > currentCPU || recommendedMemoryGB > currentMemoryGB {
-						adaptationRecommendations = append(adaptationRecommendations,
-							fmt.Sprintf("%d. VM %s (%s): CPU %d→%d cores, Memory %.1f→%.1f GB",
-								recommendationCounter, vm.Name, workloadType,
-								currentCPU, recommendedCPU, currentMemoryGB, recommendedMemoryGB))
-						recommendationCounter++
-					}
-
-					// Add VM data to CSV
-					if csvOutput != "" {
-						csvData = append(csvData, []string{
-							"VM", vm.Name, fmt.Sprintf("%d", vm.ID), vm.Status, workloadType,
-							fmt.Sprintf("%.1f", vm.CPU), fmt.Sprintf("%.1f", float64(vm.Memory)/1024/1024/1024), "",
-							"", "", "", "", "",
-							fmt.Sprintf("%d", currentCPU), fmt.Sprintf("%.1f", currentMemoryGB),
-							fmt.Sprintf("%d", recommendedCPU), fmt.Sprintf("%.1f", recommendedMemoryGB),
-							vmProfile.Criticality, vmProfile.Pattern, strings.Join(vmProfile.Recommendations, "; "),
-						})
-					}
-
-					if detailed {
-						fmt.Printf("         Pattern: %s | Criticality: %s\n", vmProfile.Pattern, vmProfile.Criticality)
-						if len(vmProfile.Recommendations) > 0 {
-							fmt.Printf("         Recommendations:\n")
-							for _, rec := range vmProfile.Recommendations {
-								fmt.Printf("           • %s\n", rec)
-							}
-						}
-					}
-				}
-			}
-		}
-		fmt.Println()
-	}
-
-	// Show numbered adaptation recommendations
-	if len(adaptationRecommendations) > 0 {
-		fmt.Printf("🔧 Resource Adaptation Recommendations\n")
-		fmt.Printf("=====================================\n")
-		for _, rec := range adaptationRecommendations {
-			fmt.Printf("%s\n", rec)
-		}
-		fmt.Println()
-	} else {
-		fmt.Printf("✅ No resource adaptations needed based on current analysis\n\n")
-	}
-
-	// Show cluster-wide recommendations
-	fmt.Printf("🎯 Cluster-Wide Recommendations\n")
-	fmt.Printf("===============================\n")
-	clusterRecommendations := balancer.GetClusterRecommendations(forecastDuration)
-	for _, rec := range clusterRecommendations {
-		fmt.Printf("• %s\n", rec)
-	}
-
-	// Write CSV file if requested
-	if csvOutput != "" {
-		if err := writeCSVFile(csvOutput, csvData); err != nil {
-			return fmt.Errorf("failed to write CSV file: %w", err)
-		}
-		fmt.Printf("📊 CSV report written to: %s\n", csvOutput)
-	}
-
-	return nil
+	// Display final results
+	return displayCapacityPlanningResults(context, adaptationRecommendations)
 }
 
 // writeCSVFile writes the CSV data to a file.
@@ -1153,4 +903,429 @@ func setOwnership(user, group string, dirs []string) {
 			_ = err // Suppress unused variable warning
 		}
 	}
+}
+
+// capacityPlanningContext holds the context for capacity planning analysis.
+type capacityPlanningContext struct {
+	cfg              *config.Config
+	client           ClientInterface
+	balancer         BalancerInterface
+	nodes            []models.Node
+	forecastDuration time.Duration
+	csvData          [][]string
+	csvOutput        string
+}
+
+// setupCapacityPlanningContext initializes the context for capacity planning.
+func setupCapacityPlanningContext(configPath, forecast, csvOutput string) (*capacityPlanningContext, error) {
+	// Load configuration
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// Create Proxmox client
+	client := proxmox.NewClient(&cfg.Proxmox)
+
+	// Get cluster information
+	nodes, err := client.GetNodes()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nodes: %w", err)
+	}
+
+	// Create advanced balancer for capacity analysis
+	balancerInstance := balancer.NewAdvancedBalancer(client, cfg)
+
+	// Parse forecast period
+	forecastDuration := parseForecastDuration(forecast)
+
+	// Prepare CSV data if output is requested
+	var csvData [][]string
+	if csvOutput != "" {
+		csvData = [][]string{{
+			"Type", "Name", "ID", "Status", "WorkloadType", "CurrentCPU%", "CurrentMemory%", "CurrentStorage%",
+			"P90CPU%", "P95CPU%", "P99CPU%", "PredictedCPU%", "PredictedMemory%", "CurrentCPUCores", "CurrentMemoryGB",
+			"RecommendedCPUCores", "RecommendedMemoryGB", "Criticality", "Pattern", "Recommendations",
+		}}
+	}
+
+	return &capacityPlanningContext{
+		cfg:              cfg,
+		client:           client,
+		balancer:         balancerInstance,
+		nodes:            nodes,
+		forecastDuration: forecastDuration,
+		csvData:          csvData,
+		csvOutput:        csvOutput,
+	}, nil
+}
+
+// parseForecastDuration parses the forecast string into a duration.
+func parseForecastDuration(forecast string) time.Duration {
+	forecastDuration, err := time.ParseDuration(forecast)
+	if err != nil {
+		// Try parsing as weeks/months
+		if strings.HasSuffix(forecast, "w") {
+			weeks, _ := strconv.Atoi(strings.TrimSuffix(forecast, "w"))
+			forecastDuration = time.Duration(weeks) * 7 * 24 * time.Hour
+		} else if strings.HasSuffix(forecast, "m") {
+			months, _ := strconv.Atoi(strings.TrimSuffix(forecast, "m"))
+			forecastDuration = time.Duration(months) * 30 * 24 * time.Hour
+		} else {
+			forecastDuration = 7 * 24 * time.Hour // Default to 1 week
+		}
+	}
+	return forecastDuration
+}
+
+// printCapacityPlanningHeader prints the analysis header.
+func printCapacityPlanningHeader(forecastDuration time.Duration) {
+	fmt.Printf("🔍 Capacity Planning Analysis\n")
+	fmt.Printf("============================\n")
+	fmt.Printf("Forecast Period: %s\n", forecastDuration.String())
+	fmt.Printf("Analysis Date: %s\n\n", time.Now().Format("2006-01-02 15:04:05"))
+}
+
+// analyzeNodesForCapacityPlanning analyzes all nodes and returns adaptation recommendations.
+func analyzeNodesForCapacityPlanning(context *capacityPlanningContext, detailed bool) []string {
+	var adaptationRecommendations []string
+	recommendationCounter := 1
+
+	// Analyze each node
+	for i := range context.nodes {
+		node := &context.nodes[i]
+		fmt.Printf("📊 Node: %s\n", node.Name)
+		fmt.Printf("   Status: %s\n", node.Status)
+
+		nodeRecommendations := analyzeNodeCapacity(context, node, &recommendationCounter, detailed)
+		adaptationRecommendations = append(adaptationRecommendations, nodeRecommendations...)
+
+		// Analyze VMs on this node
+		vmRecommendations := analyzeNodeVMs(context, node, &recommendationCounter, detailed)
+		adaptationRecommendations = append(adaptationRecommendations, vmRecommendations...)
+
+		fmt.Println()
+	}
+
+	return adaptationRecommendations
+}
+
+// analyzeNodeCapacity analyzes a single node's capacity and returns recommendations.
+func analyzeNodeCapacity(context *capacityPlanningContext, node *models.Node, recommendationCounter *int, detailed bool) []string {
+	var recommendations []string
+
+	// Get capacity metrics (only available on AdvancedBalancer)
+	advancedBalancer, ok := context.balancer.(*balancer.AdvancedBalancer)
+	if !ok {
+		fmt.Printf("   Current CPU: %.1f%% | Memory: %.1f%% | Storage: %.1f%%\n",
+			node.CPU.Usage, node.Memory.Usage, node.Storage.Usage)
+		fmt.Printf("   ⚠️  Advanced capacity planning requires advanced balancer\n")
+		return recommendations
+	}
+
+	metrics, hasMetrics := advancedBalancer.GetCapacityMetrics(node.Name)
+	if hasMetrics {
+		fmt.Printf("   Current CPU: %.1f%% | Memory: %.1f%% | Storage: %.1f%%\n",
+			node.CPU.Usage, node.Memory.Usage, node.Storage.Usage)
+		fmt.Printf("   P90 CPU: %.1f%% | P95 CPU: %.1f%% | P99 CPU: %.1f%%\n",
+			metrics.P90, metrics.P95, metrics.P99)
+
+		// Predict evolution
+		predictedCPU := advancedBalancer.PredictResourceEvolution(node.Name, "cpu", context.forecastDuration)
+		predictedMemory := advancedBalancer.PredictResourceEvolution(node.Name, "memory", context.forecastDuration)
+
+		fmt.Printf("   Predicted CPU (%s): %.1f%% | Memory: %.1f%%\n",
+			context.forecastDuration.String(), predictedCPU, predictedMemory)
+
+		// Generate node adaptation recommendations
+		recommendations = append(recommendations, generateNodeRecommendations(node, float32(predictedCPU), float32(predictedMemory), recommendationCounter)...)
+
+		// Get and display recommendations
+		resourceRecommendations := advancedBalancer.GetResourceRecommendations(node.Name, detailed)
+		fmt.Printf("   Recommendations:\n")
+		for _, rec := range resourceRecommendations {
+			fmt.Printf("     • %s\n", rec)
+		}
+
+		// Add node data to CSV
+		addNodeToCSV(context, node, metrics, float32(predictedCPU), float32(predictedMemory), resourceRecommendations)
+	} else {
+		fmt.Printf("   Current CPU: %.1f%% | Memory: %.1f%% | Storage: %.1f%%\n",
+			node.CPU.Usage, node.Memory.Usage, node.Storage.Usage)
+		fmt.Printf("   ⚠️  No historical data available for capacity planning\n")
+
+		// Add node data to CSV (without historical metrics)
+		addNodeToCSVWithoutMetrics(context, node)
+	}
+
+	return recommendations
+}
+
+// generateNodeRecommendations generates CPU and memory recommendations for a node.
+func generateNodeRecommendations(node *models.Node, predictedCPU, predictedMemory float32, recommendationCounter *int) []string {
+	var recommendations []string
+
+	if predictedCPU > 90 {
+		currentCores := node.CPU.Cores
+		recommendedCores := int(float64(currentCores) * (float64(predictedCPU) / 80.0)) // Target 80% usage
+		if recommendedCores > currentCores {
+			recommendations = append(recommendations,
+				fmt.Sprintf("%d. Node %s: Increase CPU from %d to %d cores",
+					*recommendationCounter, node.Name, currentCores, recommendedCores))
+			*recommendationCounter++
+		}
+	}
+
+	if predictedMemory > 90 {
+		currentMemoryGB := float64(node.Memory.Total) / 1024 / 1024 / 1024
+		recommendedMemoryGB := currentMemoryGB * (float64(predictedMemory) / 80.0) // Target 80% usage
+		if recommendedMemoryGB > currentMemoryGB {
+			recommendations = append(recommendations,
+				fmt.Sprintf("%d. Node %s: Increase memory from %.1f to %.1f GB",
+					*recommendationCounter, node.Name, currentMemoryGB, recommendedMemoryGB))
+			*recommendationCounter++
+		}
+	}
+
+	return recommendations
+}
+
+// analyzeNodeVMs analyzes VMs on a node and returns recommendations.
+func analyzeNodeVMs(context *capacityPlanningContext, node *models.Node, recommendationCounter *int, detailed bool) []string {
+	var recommendations []string
+
+	if len(node.VMs) == 0 {
+		return recommendations
+	}
+
+	fmt.Printf("   VMs (%d):\n", len(node.VMs))
+
+	// Group VMs by workload type for cleaner output
+	workloadGroups := make(map[string][]models.VM)
+
+	// Get advanced balancer for VM profile analysis
+	advancedBalancer, ok := context.balancer.(*balancer.AdvancedBalancer)
+	if !ok {
+		// Fall back to grouping all VMs as "Standard" if not using advanced balancer
+		workloadGroups["Standard"] = append(workloadGroups["Standard"], node.VMs...)
+	} else {
+		for j := range node.VMs {
+			vm := &node.VMs[j]
+			vmProfile := advancedBalancer.AnalyzeVMProfile(vm, node.Name)
+			workloadType := vmProfile.WorkloadType
+			workloadGroups[workloadType] = append(workloadGroups[workloadType], *vm)
+		}
+	}
+
+	// Show VMs grouped by workload type and generate VM adaptation recommendations
+	for workloadType, vms := range workloadGroups {
+		fmt.Printf("     %s (%d VMs):\n", workloadType, len(vms))
+		for k := range vms {
+			vm := &vms[k]
+			vmRecommendations := analyzeVMCapacity(context, vm, node.Name, workloadType, recommendationCounter, detailed)
+			recommendations = append(recommendations, vmRecommendations...)
+		}
+	}
+
+	return recommendations
+}
+
+// analyzeVMCapacity analyzes a single VM's capacity and returns recommendations.
+func analyzeVMCapacity(context *capacityPlanningContext, vm *models.VM, nodeName, workloadType string, recommendationCounter *int, detailed bool) []string {
+	var recommendations []string
+
+	// Get VM profile (only available with advanced balancer)
+	var vmProfile balancer.VMProfile
+	if advancedBalancer, ok := context.balancer.(*balancer.AdvancedBalancer); ok {
+		vmProfile = advancedBalancer.AnalyzeVMProfile(vm, nodeName)
+	} else {
+		// Fallback profile for basic balancer
+		vmProfile = balancer.VMProfile{
+			WorkloadType:    workloadType,
+			Pattern:         "Standard",
+			Criticality:     "Normal",
+			Recommendations: []string{"Using basic balancer - limited analysis available"},
+		}
+	}
+	fmt.Printf("       🖥️  %s (ID: %d) - %s\n", vm.Name, vm.ID, vm.Status)
+
+	// Generate VM-specific adaptation recommendations
+	currentCPU := int(vm.CPU)
+	currentMemoryGB := float64(vm.Memory) / 1024 / 1024 / 1024
+
+	// Calculate recommended resources based on workload type
+	recommendedCPU, recommendedMemoryGB := calculateVMRecommendations(currentCPU, currentMemoryGB, workloadType, vmProfile.Criticality)
+
+	// Only add recommendation if there's a significant difference
+	if recommendedCPU > currentCPU || recommendedMemoryGB > currentMemoryGB {
+		recommendations = append(recommendations,
+			fmt.Sprintf("%d. VM %s (%s): CPU %d→%d cores, Memory %.1f→%.1f GB",
+				*recommendationCounter, vm.Name, workloadType,
+				currentCPU, recommendedCPU, currentMemoryGB, recommendedMemoryGB))
+		*recommendationCounter++
+	}
+
+	// Add VM data to CSV
+	addVMToCSV(context, vm, workloadType, currentCPU, currentMemoryGB, recommendedCPU, recommendedMemoryGB, vmProfile)
+
+	if detailed {
+		fmt.Printf("         Pattern: %s | Criticality: %s\n", vmProfile.Pattern, vmProfile.Criticality)
+		if len(vmProfile.Recommendations) > 0 {
+			fmt.Printf("         Recommendations:\n")
+			for _, rec := range vmProfile.Recommendations {
+				fmt.Printf("           • %s\n", rec)
+			}
+		}
+	}
+
+	return recommendations
+}
+
+// calculateVMRecommendations calculates recommended CPU and memory for a VM.
+func calculateVMRecommendations(currentCPU int, currentMemoryGB float64, workloadType, criticality string) (recommendedCPU int, recommendedMemoryGB float64) {
+	switch workloadType {
+	case "Burst":
+		recommendedCPU = int(float64(currentCPU) * 1.4) // 40% more for burst
+		recommendedMemoryGB = currentMemoryGB * 1.3     // 30% more for burst
+	case "Sustained":
+		recommendedCPU = int(float64(currentCPU) * 1.2) // 20% more for sustained
+		recommendedMemoryGB = currentMemoryGB * 1.2     // 20% more for sustained
+	case "Idle":
+		recommendedCPU = int(float64(currentCPU) * 1.1) // 10% more for idle
+		recommendedMemoryGB = currentMemoryGB * 1.1     // 10% more for idle
+	default:
+		recommendedCPU = int(float64(currentCPU) * 1.25) // 25% more default
+		recommendedMemoryGB = currentMemoryGB * 1.25     // 25% more default
+	}
+
+	// Add priority adjustments
+	if criticality == "Critical" {
+		recommendedCPU = int(float64(recommendedCPU) * 1.2) // 20% more for critical
+		recommendedMemoryGB *= 1.2                          // 20% more for critical
+	}
+
+	return recommendedCPU, recommendedMemoryGB
+}
+
+// displayCapacityPlanningResults displays the final capacity planning results.
+func displayCapacityPlanningResults(context *capacityPlanningContext, adaptationRecommendations []string) error {
+	// Show numbered adaptation recommendations
+	if len(adaptationRecommendations) > 0 {
+		fmt.Printf("🔧 Resource Adaptation Recommendations\n")
+		fmt.Printf("=====================================\n")
+		for _, rec := range adaptationRecommendations {
+			fmt.Printf("%s\n", rec)
+		}
+		fmt.Println()
+	} else {
+		fmt.Printf("✅ No resource adaptations needed based on current analysis\n\n")
+	}
+
+	// Show cluster-wide recommendations
+	fmt.Printf("🎯 Cluster-Wide Recommendations\n")
+	fmt.Printf("===============================\n")
+
+	var clusterRecommendations []string
+	if advancedBalancer, ok := context.balancer.(*balancer.AdvancedBalancer); ok {
+		clusterRecommendations = advancedBalancer.GetClusterRecommendations(context.forecastDuration)
+	} else {
+		clusterRecommendations = []string{
+			"📊 Monitor resource distribution across nodes for optimal balance",
+			"🔄 Regular capacity planning reviews recommended",
+			"⚠️  Advanced cluster recommendations require advanced balancer",
+		}
+	}
+	for _, rec := range clusterRecommendations {
+		fmt.Printf("• %s\n", rec)
+	}
+
+	// Write CSV file if requested
+	if context.csvOutput != "" {
+		if err := writeCSVFile(context.csvOutput, context.csvData); err != nil {
+			return fmt.Errorf("failed to write CSV file: %w", err)
+		}
+		fmt.Printf("📊 CSV report written to: %s\n", context.csvOutput)
+	}
+
+	return nil
+}
+
+// addNodeToCSV adds node data to CSV output.
+func addNodeToCSV(context *capacityPlanningContext, node *models.Node, metrics interface{}, predictedCPU, predictedMemory float32, recommendations []string) {
+	if context.csvOutput == "" {
+		return
+	}
+
+	currentMemoryGB := float64(node.Memory.Total) / 1024 / 1024 / 1024
+	recommendedCores := node.CPU.Cores
+	recommendedMemoryGB := currentMemoryGB
+
+	if predictedCPU > 90 {
+		recommendedCores = int(float64(node.CPU.Cores) * (float64(predictedCPU) / 80.0))
+	}
+	if predictedMemory > 90 {
+		recommendedMemoryGB = currentMemoryGB * (float64(predictedMemory) / 80.0)
+	}
+
+	// Extract metrics values (using interface{} for compatibility)
+	p90, p95, p99 := "", "", ""
+	if m, ok := metrics.(struct{ P90, P95, P99 float32 }); ok {
+		p90 = fmt.Sprintf("%.1f", m.P90)
+		p95 = fmt.Sprintf("%.1f", m.P95)
+		p99 = fmt.Sprintf("%.1f", m.P99)
+	}
+
+	context.csvData = append(context.csvData, []string{
+		"Node", node.Name, "", node.Status, "",
+		fmt.Sprintf("%.1f", node.CPU.Usage), fmt.Sprintf("%.1f", node.Memory.Usage), fmt.Sprintf("%.1f", node.Storage.Usage),
+		p90, p95, p99,
+		fmt.Sprintf("%.1f", predictedCPU), fmt.Sprintf("%.1f", predictedMemory),
+		fmt.Sprintf("%d", node.CPU.Cores), fmt.Sprintf("%.1f", currentMemoryGB),
+		fmt.Sprintf("%d", recommendedCores), fmt.Sprintf("%.1f", recommendedMemoryGB),
+		"", "", strings.Join(recommendations, "; "),
+	})
+}
+
+// addNodeToCSVWithoutMetrics adds node data to CSV without historical metrics.
+func addNodeToCSVWithoutMetrics(context *capacityPlanningContext, node *models.Node) {
+	if context.csvOutput == "" {
+		return
+	}
+
+	currentMemoryGB := float64(node.Memory.Total) / 1024 / 1024 / 1024
+	context.csvData = append(context.csvData, []string{
+		"Node", node.Name, "", node.Status, "",
+		fmt.Sprintf("%.1f", node.CPU.Usage), fmt.Sprintf("%.1f", node.Memory.Usage), fmt.Sprintf("%.1f", node.Storage.Usage),
+		"", "", "", "", "",
+		fmt.Sprintf("%d", node.CPU.Cores), fmt.Sprintf("%.1f", currentMemoryGB),
+		fmt.Sprintf("%d", node.CPU.Cores), fmt.Sprintf("%.1f", currentMemoryGB),
+		"", "", "No historical data available",
+	})
+}
+
+// addVMToCSV adds VM data to CSV output.
+func addVMToCSV(context *capacityPlanningContext, vm *models.VM, workloadType string, currentCPU int, currentMemoryGB float64, recommendedCPU int, recommendedMemoryGB float64, vmProfile interface{}) {
+	if context.csvOutput == "" {
+		return
+	}
+
+	// Extract vmProfile values (using interface{} for compatibility)
+	criticality, pattern, recommendations := "", "", ""
+	if p, ok := vmProfile.(struct {
+		Criticality, Pattern string
+		Recommendations      []string
+	}); ok {
+		criticality = p.Criticality
+		pattern = p.Pattern
+		recommendations = strings.Join(p.Recommendations, "; ")
+	}
+
+	context.csvData = append(context.csvData, []string{
+		"VM", vm.Name, fmt.Sprintf("%d", vm.ID), vm.Status, workloadType,
+		fmt.Sprintf("%.1f", vm.CPU), fmt.Sprintf("%.1f", float64(vm.Memory)/1024/1024/1024), "",
+		"", "", "", "", "",
+		fmt.Sprintf("%d", currentCPU), fmt.Sprintf("%.1f", currentMemoryGB),
+		fmt.Sprintf("%d", recommendedCPU), fmt.Sprintf("%.1f", recommendedMemoryGB),
+		criticality, pattern, recommendations,
+	})
 }

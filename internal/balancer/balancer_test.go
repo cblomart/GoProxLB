@@ -874,3 +874,280 @@ func TestAdvancedBalancerAggressivenessConfig(t *testing.T) {
 		t.Errorf("Expected high aggressiveness min improvement to be 5.0, got %f", aggConfig.MinImprovement)
 	}
 }
+
+// Test refactored AnalyzeVMProfile helper functions.
+func TestAnalyzeLoadProfileMetrics(t *testing.T) {
+	client := &mockClient{
+		nodes: createTestNodes(),
+		err:   nil,
+	}
+	config := createTestConfig()
+	config.Balancing.BalancerType = "advanced"
+
+	balancer := NewAdvancedBalancer(client, config)
+
+	profile := &VMProfile{
+		WorkloadType: "Unknown",
+		Pattern:      "Unknown",
+		Criticality:  "Normal",
+		CPUBuffer:    50.0,
+		MemoryBuffer: 50.0,
+	}
+
+	loadProfile := &models.LoadProfile{
+		CPUPattern: models.CPUPattern{
+			Type:           "burst",
+			SustainedLevel: 85.0,
+			BurstDuration:  10.0,
+			BurstFrequency: 5.0,
+		},
+		MemoryPattern: models.MemoryPattern{
+			Type:       "static",
+			PeakUsage:  75.0,
+			Volatility: 10.0,
+		},
+		StoragePattern: models.StoragePattern{
+			Type:      "read-heavy",
+			ReadIOPs:  1000,
+			WriteIOPs: 500,
+		},
+		Priority:    models.PriorityInteractive,
+		Criticality: models.CriticalityImportant,
+	}
+
+	balancer.analyzeLoadProfileMetrics(profile, loadProfile)
+
+	// Verify the profile was updated with analysis results
+	if profile.WorkloadType == "Unknown" {
+		t.Error("Expected workload type to be determined from load profile")
+	}
+
+	if profile.Pattern == "Unknown" {
+		t.Error("Expected pattern to be determined from load profile")
+	}
+}
+
+func TestAnalyzeCPUPattern(t *testing.T) {
+	client := &mockClient{
+		nodes: createTestNodes(),
+		err:   nil,
+	}
+	config := createTestConfig()
+	config.Balancing.BalancerType = "advanced"
+
+	balancer := NewAdvancedBalancer(client, config)
+
+	tests := []struct {
+		name         string
+		loadProfile  *models.LoadProfile
+		expectedType string
+	}{
+		{
+			name: "CPU intensive workload",
+			loadProfile: &models.LoadProfile{
+				CPUPattern: models.CPUPattern{
+					Type:           "burst",
+					SustainedLevel: 85.0,
+					BurstDuration:  15.0,
+					BurstFrequency: 10.0,
+				},
+				MemoryPattern: models.MemoryPattern{
+					Type:       "static",
+					PeakUsage:  40.0,
+					Volatility: 5.0,
+				},
+				StoragePattern: models.StoragePattern{Type: "mixed"},
+				Priority:       models.PriorityInteractive,
+				Criticality:    models.CriticalityNormal,
+			},
+			expectedType: "Burst", // The actual workload type is based on CPU pattern type
+		},
+		{
+			name: "Memory intensive workload",
+			loadProfile: &models.LoadProfile{
+				CPUPattern: models.CPUPattern{
+					Type:           "idle",
+					SustainedLevel: 30.0,
+				},
+				MemoryPattern: models.MemoryPattern{
+					Type:       "growing",
+					PeakUsage:  85.0,
+					Volatility: 5.0,
+					GrowthRate: 100.0,
+				},
+				StoragePattern: models.StoragePattern{Type: "read-heavy"},
+				Priority:       models.PriorityBackground,
+				Criticality:    models.CriticalityNormal,
+			},
+			expectedType: "Idle", // The actual workload type is based on CPU pattern type
+		},
+		{
+			name: "Balanced workload",
+			loadProfile: &models.LoadProfile{
+				CPUPattern: models.CPUPattern{
+					Type:           "sustained",
+					SustainedLevel: 50.0,
+				},
+				MemoryPattern: models.MemoryPattern{
+					Type:       "static",
+					PeakUsage:  50.0,
+					Volatility: 10.0,
+				},
+				StoragePattern: models.StoragePattern{Type: "mixed"},
+				Priority:       models.PriorityInteractive,
+				Criticality:    models.CriticalityNormal,
+			},
+			expectedType: "Sustained", // The actual workload type is based on CPU pattern type
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			profile := &VMProfile{
+				WorkloadType: "Unknown",
+				Pattern:      "Unknown",
+				Criticality:  "Normal",
+				CPUBuffer:    50.0,
+				MemoryBuffer: 50.0,
+			}
+
+			balancer.analyzeCPUPattern(profile, tt.loadProfile)
+			balancer.analyzeMemoryPattern(profile, tt.loadProfile)
+
+			if profile.WorkloadType != tt.expectedType {
+				t.Errorf("Expected workload type %s, got %s", tt.expectedType, profile.WorkloadType)
+			}
+		})
+	}
+}
+
+func TestAnalyzePriorityAndCriticality(t *testing.T) {
+	client := &mockClient{
+		nodes: createTestNodes(),
+		err:   nil,
+	}
+	config := createTestConfig()
+	config.Balancing.BalancerType = "advanced"
+
+	balancer := NewAdvancedBalancer(client, config)
+
+	tests := []struct {
+		name                string
+		priority            models.Priority
+		expectedCriticality string
+	}{
+		{
+			name:                "High priority VM",
+			priority:            models.PriorityRealtime,
+			expectedCriticality: "Critical", // Real mapping based on the actual function
+		},
+		{
+			name:                "Normal priority VM",
+			priority:            models.PriorityInteractive,
+			expectedCriticality: "Important", // Real mapping based on the actual function
+		},
+		{
+			name:                "Low priority VM",
+			priority:            models.PriorityBackground,
+			expectedCriticality: "Normal", // Real mapping based on the actual function
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			profile := &VMProfile{
+				WorkloadType: "Balanced",
+				Pattern:      "Stable",
+				Criticality:  "Normal",
+				CPUBuffer:    50.0,
+				MemoryBuffer: 50.0,
+			}
+
+			loadProfile := &models.LoadProfile{
+				Priority: tt.priority,
+			}
+
+			balancer.analyzePriorityAndCriticality(profile, loadProfile)
+
+			if profile.Criticality != tt.expectedCriticality {
+				t.Errorf("Expected criticality %s, got %s", tt.expectedCriticality, profile.Criticality)
+			}
+		})
+	}
+}
+
+func TestAnalyzeFallbackProfile(t *testing.T) {
+	client := &mockClient{
+		nodes: createTestNodes(),
+		err:   nil,
+	}
+	config := createTestConfig()
+	config.Balancing.BalancerType = "advanced"
+
+	balancer := NewAdvancedBalancer(client, config)
+
+	profile := &VMProfile{
+		WorkloadType: "Unknown",
+		Pattern:      "Unknown",
+		Criticality:  "Normal",
+		CPUBuffer:    50.0,
+		MemoryBuffer: 50.0,
+	}
+
+	vm := &models.VM{
+		ID:     100,
+		Name:   "test-vm",
+		Status: "running",
+		CPU:    4.0,
+		Memory: 8192,
+	}
+
+	balancer.analyzeFallbackProfile(profile, vm)
+
+	// Verify fallback profile was set
+	if profile.WorkloadType != "Standard" {
+		t.Errorf("Expected fallback workload type 'Standard', got %s", profile.WorkloadType)
+	}
+
+	if profile.Pattern != "Unknown (no historical data)" {
+		t.Errorf("Expected fallback pattern 'Unknown (no historical data)', got %s", profile.Pattern)
+	}
+
+	if len(profile.Recommendations) == 0 {
+		t.Error("Expected fallback recommendations to be set")
+	}
+}
+
+func TestCapBufferValues(t *testing.T) {
+	client := &mockClient{
+		nodes: createTestNodes(),
+		err:   nil,
+	}
+	config := createTestConfig()
+	config.Balancing.BalancerType = "advanced"
+
+	balancer := NewAdvancedBalancer(client, config)
+
+	// Test that the function exists and can be called
+	profile := &VMProfile{
+		WorkloadType: "Balanced",
+		Pattern:      "Stable",
+		Criticality:  "Normal",
+		CPUBuffer:    75.0,
+		MemoryBuffer: 80.0,
+	}
+
+	// Call the function without causing panic
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("capBufferValues caused panic: %v", r)
+		}
+	}()
+
+	balancer.capBufferValues(profile)
+
+	// Just verify the function completes without error
+	if profile.CPUBuffer < 0 {
+		t.Error("Expected CPU buffer to be non-negative after capping")
+	}
+}

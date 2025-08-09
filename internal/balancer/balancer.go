@@ -1,3 +1,4 @@
+// Package balancer implements load balancing algorithms for Proxmox VE clusters.
 package balancer
 
 import (

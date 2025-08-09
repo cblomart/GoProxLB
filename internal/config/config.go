@@ -1,3 +1,4 @@
+// Package config handles configuration loading and validation for GoProxLB.
 package config
 
 import (
@@ -189,72 +190,13 @@ func setDefaults() {
 }
 
 // validateConfig validates the configuration.
-//
-//nolint:gocyclo // Complex configuration validation logic with multiple checks
 func validateConfig(config *Config) error {
-	// Validate Proxmox configuration
-	if config.Proxmox.Host == "" {
-		return fmt.Errorf("proxmox host is required")
+	if err := validateProxmoxConfig(&config.Proxmox); err != nil {
+		return err
 	}
 
-	// Allow empty username/password/token for local access
-	if !strings.Contains(config.Proxmox.Host, "localhost") && !strings.Contains(config.Proxmox.Host, "127.0.0.1") {
-		if config.Proxmox.Username == "" && config.Proxmox.Token == "" {
-			return fmt.Errorf("either username/password or token is required for remote access")
-		}
-	}
-
-	// Cluster name can be empty for auto-detection
-	// It will be auto-detected from Proxmox API if not specified
-
-	// Validate balancing configuration
-	if config.Balancing.BalancerType != "threshold" && config.Balancing.BalancerType != "advanced" {
-		return fmt.Errorf("balancer_type must be 'threshold' or 'advanced'")
-	}
-
-	if config.Balancing.Aggressiveness != "low" &&
-		config.Balancing.Aggressiveness != "medium" &&
-		config.Balancing.Aggressiveness != "high" {
-		return fmt.Errorf("aggressiveness must be 'low', 'medium', or 'high'")
-	}
-
-	// Validate cooldown period - removed since cooldown is linked to aggressiveness
-	// Cooldown is automatically set based on aggressiveness level
-
-	// Validate thresholds
-	if config.Balancing.Thresholds.CPU <= 0 || config.Balancing.Thresholds.CPU > 100 {
-		return fmt.Errorf("CPU threshold must be between 1 and 100")
-	}
-	if config.Balancing.Thresholds.Memory <= 0 || config.Balancing.Thresholds.Memory > 100 {
-		return fmt.Errorf("memory threshold must be between 1 and 100")
-	}
-	if config.Balancing.Thresholds.Storage <= 0 || config.Balancing.Thresholds.Storage > 100 {
-		return fmt.Errorf("storage threshold must be between 1 and 100")
-	}
-
-	// Validate weights
-	if config.Balancing.Weights.CPU < 0 {
-		return fmt.Errorf("CPU weight cannot be negative")
-	}
-	if config.Balancing.Weights.Memory < 0 {
-		return fmt.Errorf("memory weight cannot be negative")
-	}
-	if config.Balancing.Weights.Storage < 0 {
-		return fmt.Errorf("storage weight cannot be negative")
-	}
-
-	// Validate load profiles configuration
-	if config.Balancing.LoadProfiles.Enabled {
-		if _, err := time.ParseDuration(config.Balancing.LoadProfiles.Window); err != nil {
-			return fmt.Errorf("invalid load profiles window duration: %w", err)
-		}
-	}
-
-	// Validate capacity configuration
-	if config.Balancing.Capacity.Enabled {
-		if _, err := time.ParseDuration(config.Balancing.Capacity.Forecast); err != nil {
-			return fmt.Errorf("invalid capacity forecast duration: %w", err)
-		}
+	if err := validateBalancingConfig(&config.Balancing); err != nil {
+		return err
 	}
 
 	return nil
@@ -340,4 +282,115 @@ func (c *Config) AutoDetectClusterName(client interface{}) error {
 	}
 
 	return fmt.Errorf("cannot auto-detect cluster name: client does not support GetClusterInfo")
+}
+
+// validateProxmoxConfig validates the Proxmox configuration.
+func validateProxmoxConfig(proxmox *ProxmoxConfig) error {
+	if proxmox.Host == "" {
+		return fmt.Errorf("proxmox host is required")
+	}
+
+	// Allow empty username/password/token for local access
+	if !strings.Contains(proxmox.Host, "localhost") && !strings.Contains(proxmox.Host, "127.0.0.1") {
+		if proxmox.Username == "" && proxmox.Token == "" {
+			return fmt.Errorf("either username/password or token is required for remote access")
+		}
+	}
+
+	return nil
+}
+
+// validateBalancingConfig validates the balancing configuration.
+func validateBalancingConfig(balancing *BalancingConfig) error {
+	if err := validateBalancerType(balancing.BalancerType); err != nil {
+		return err
+	}
+
+	if err := validateAggressiveness(balancing.Aggressiveness); err != nil {
+		return err
+	}
+
+	if err := validateThresholds(&balancing.Thresholds); err != nil {
+		return err
+	}
+
+	if err := validateWeights(&balancing.Weights); err != nil {
+		return err
+	}
+
+	if err := validateLoadProfiles(&balancing.LoadProfiles); err != nil {
+		return err
+	}
+
+	if err := validateCapacityConfig(&balancing.Capacity); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateBalancerType validates the balancer type.
+func validateBalancerType(balancerType string) error {
+	if balancerType != "threshold" && balancerType != "advanced" {
+		return fmt.Errorf("balancer_type must be 'threshold' or 'advanced'")
+	}
+	return nil
+}
+
+// validateAggressiveness validates the aggressiveness setting.
+func validateAggressiveness(aggressiveness string) error {
+	if aggressiveness != "low" &&
+		aggressiveness != "medium" &&
+		aggressiveness != "high" {
+		return fmt.Errorf("aggressiveness must be 'low', 'medium', or 'high'")
+	}
+	return nil
+}
+
+// validateThresholds validates the threshold values.
+func validateThresholds(thresholds *ResourceThresholds) error {
+	if thresholds.CPU <= 0 || thresholds.CPU > 100 {
+		return fmt.Errorf("CPU threshold must be between 1 and 100")
+	}
+	if thresholds.Memory <= 0 || thresholds.Memory > 100 {
+		return fmt.Errorf("memory threshold must be between 1 and 100")
+	}
+	if thresholds.Storage <= 0 || thresholds.Storage > 100 {
+		return fmt.Errorf("storage threshold must be between 1 and 100")
+	}
+	return nil
+}
+
+// validateWeights validates the weight values.
+func validateWeights(weights *ResourceWeights) error {
+	if weights.CPU < 0 {
+		return fmt.Errorf("CPU weight cannot be negative")
+	}
+	if weights.Memory < 0 {
+		return fmt.Errorf("memory weight cannot be negative")
+	}
+	if weights.Storage < 0 {
+		return fmt.Errorf("storage weight cannot be negative")
+	}
+	return nil
+}
+
+// validateLoadProfiles validates the load profiles configuration.
+func validateLoadProfiles(loadProfiles *LoadProfilesConfig) error {
+	if loadProfiles.Enabled {
+		if _, err := time.ParseDuration(loadProfiles.Window); err != nil {
+			return fmt.Errorf("invalid load profiles window duration: %w", err)
+		}
+	}
+	return nil
+}
+
+// validateCapacityConfig validates the capacity configuration.
+func validateCapacityConfig(capacity *CapacityConfig) error {
+	if capacity.Enabled {
+		if _, err := time.ParseDuration(capacity.Forecast); err != nil {
+			return fmt.Errorf("invalid capacity forecast duration: %w", err)
+		}
+	}
+	return nil
 }

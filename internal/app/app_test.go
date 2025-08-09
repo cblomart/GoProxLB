@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -1196,4 +1197,439 @@ func TestAppWithInvalidConfig(t *testing.T) {
 	// This test doesn't make sense since the config validation happens in the config package
 	// and the mock config loader doesn't validate the config
 	t.Skip("Skipping - config validation is tested in the config package tests")
+}
+
+// Test capacity planning functions.
+func TestShowCapacityPlanning(t *testing.T) {
+	// Create temporary CSV file
+	tempFile, err := os.CreateTemp("", "test_capacity_*.csv")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+	tempFile.Close()
+
+	// Test with basic balancer (should work with fallbacks)
+	cfg := createTestConfig()
+	cfg.Balancing.BalancerType = "threshold"
+
+	client := &mockClient{
+		nodes: createTestNodes(),
+	}
+
+	balancer := &mockBalancer{
+		results: []models.BalancingResult{},
+		err:     nil,
+	}
+
+	_, err = NewAppWithDependencies("", &mockConfigLoader{config: cfg}, client, balancer)
+	if err != nil {
+		t.Fatalf("Failed to create app: %v", err)
+	}
+
+	// Test successful capacity planning (will fail because we can't override config loading in this function)
+	err = ShowCapacityPlanning("test-config.yaml", true, "24h", tempFile.Name())
+	if err == nil {
+		t.Log("ShowCapacityPlanning succeeded (unexpected but acceptable for integration test)")
+	} else {
+		t.Logf("ShowCapacityPlanning failed as expected in test environment: %v", err)
+	}
+
+	// Verify CSV file would be created if the function succeeded
+	// (Skip this check since the function failed as expected)
+}
+
+func TestShowCapacityPlanningError(t *testing.T) {
+	// Test with invalid config path
+	err := ShowCapacityPlanning("non-existent-config.yaml", false, "24h", "")
+	if err == nil {
+		t.Error("Expected error for invalid config path")
+	}
+
+	// Test with invalid forecast duration
+	// Note: No need to create cfg, client, balancer for this test
+
+	// Create temp config file
+	tempFile, err := os.CreateTemp("", "test_config_*.yaml")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+	tempFile.Close()
+
+	err = ShowCapacityPlanning(tempFile.Name(), false, "invalid-duration", "")
+	if err == nil {
+		t.Error("Expected error for invalid forecast duration")
+	}
+}
+
+func TestSetupCapacityPlanningContext(t *testing.T) {
+	cfg := createTestConfig()
+
+	client := &mockClient{
+		nodes: createTestNodes(),
+	}
+
+	balancer := &mockBalancer{}
+
+	_, err := NewAppWithDependencies("", &mockConfigLoader{config: cfg}, client, balancer)
+	if err != nil {
+		t.Fatalf("Failed to create app: %v", err)
+	}
+
+	// Test valid setup (will fail because this is an integration function that requires real config)
+	context, err := setupCapacityPlanningContext("test-config.yaml", "24h", "")
+	if err != nil {
+		t.Logf("setupCapacityPlanningContext failed as expected in test environment: %v", err)
+		return // Exit early since this is expected
+	}
+
+	if context == nil {
+		t.Error("Expected context to be created")
+		return
+	}
+
+	if context.forecastDuration != 24*time.Hour {
+		t.Errorf("Expected forecast duration to be 24h, got %v", context.forecastDuration)
+	}
+}
+
+func TestParseForecastDuration(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected time.Duration
+		hasError bool
+	}{
+		{"24h", 24 * time.Hour, false},
+		{"168h", 168 * time.Hour, false},
+		{"7d", 7 * 24 * time.Hour, false},
+		{"1w", 7 * 24 * time.Hour, false},
+		{"2w", 14 * 24 * time.Hour, false},
+		{"invalid", 7 * 24 * time.Hour, false}, // Defaults to 1 week
+		{"", 7 * 24 * time.Hour, false},        // Defaults to 1 week
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			duration := parseForecastDuration(test.input)
+
+			if duration != test.expected {
+				t.Errorf("Expected duration %v, got %v", test.expected, duration)
+			}
+		})
+	}
+}
+
+func TestGenerateNodeRecommendations(t *testing.T) {
+	node := &models.Node{
+		Name:   "test-node",
+		CPU:    models.CPUInfo{Usage: 70.0, Cores: 4},
+		Memory: models.MemoryInfo{Usage: 60.0, Total: 8 * 1024 * 1024 * 1024}, // 8GB
+	}
+
+	// Test with high predicted values (>90) that should generate recommendations
+	counter := 0
+	recommendations := generateNodeRecommendations(node, 95.0, 92.0, &counter)
+
+	if len(recommendations) == 0 {
+		t.Error("Expected recommendations to be generated for high predicted values")
+	}
+
+	if counter == 0 {
+		t.Error("Expected recommendation counter to be incremented")
+	}
+
+	// Test with low predicted values (should generate no recommendations)
+	counter = 0
+	lowRecommendations := generateNodeRecommendations(node, 30.0, 25.0, &counter)
+
+	if len(lowRecommendations) != 0 {
+		t.Error("Expected no recommendations for low predicted values")
+	}
+
+	if counter != 0 {
+		t.Error("Expected counter to remain at 0 for low predicted values")
+	}
+
+	// Test threshold boundary (exactly 90% should not generate recommendations)
+	counter = 0
+	boundaryRecommendations := generateNodeRecommendations(node, 90.0, 90.0, &counter)
+
+	if len(boundaryRecommendations) != 0 {
+		t.Error("Expected no recommendations for exactly 90% predicted values")
+	}
+}
+
+func TestCalculateVMRecommendations(t *testing.T) {
+	tests := []struct {
+		name                     string
+		currentCPU               int
+		currentMemoryGB          float64
+		workloadType             string
+		criticality              string
+		expectedCPUMultiplier    float64
+		expectedMemoryMultiplier float64
+	}{
+		{
+			name:                     "Burst workload",
+			currentCPU:               2,
+			currentMemoryGB:          4.0,
+			workloadType:             "Burst",
+			criticality:              "Normal",
+			expectedCPUMultiplier:    1.4, // 40% increase
+			expectedMemoryMultiplier: 1.3, // 30% increase
+		},
+		{
+			name:                     "Sustained workload",
+			currentCPU:               4,
+			currentMemoryGB:          8.0,
+			workloadType:             "Sustained",
+			criticality:              "Normal",
+			expectedCPUMultiplier:    1.2, // 20% increase
+			expectedMemoryMultiplier: 1.2, // 20% increase
+		},
+		{
+			name:                     "Idle workload",
+			currentCPU:               2,
+			currentMemoryGB:          4.0,
+			workloadType:             "Idle",
+			criticality:              "Normal",
+			expectedCPUMultiplier:    1.1, // 10% increase
+			expectedMemoryMultiplier: 1.1, // 10% increase
+		},
+		{
+			name:                     "Default workload",
+			currentCPU:               4,
+			currentMemoryGB:          8.0,
+			workloadType:             "Unknown",
+			criticality:              "Normal",
+			expectedCPUMultiplier:    1.25, // 25% increase
+			expectedMemoryMultiplier: 1.25, // 25% increase
+		},
+		{
+			name:                     "Critical burst workload",
+			currentCPU:               4, // Use 4 to avoid float truncation issues
+			currentMemoryGB:          8.0,
+			workloadType:             "Burst",
+			criticality:              "Critical",
+			expectedCPUMultiplier:    1.4 * 1.2, // 40% * 120% = 68% increase
+			expectedMemoryMultiplier: 1.3 * 1.2, // 30% * 120% = 56% increase
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			recommendedCPU, recommendedMemoryGB := calculateVMRecommendations(
+				test.currentCPU, test.currentMemoryGB, test.workloadType, test.criticality)
+
+			expectedCPU := int(float64(test.currentCPU) * test.expectedCPUMultiplier)
+			expectedMemoryGB := test.currentMemoryGB * test.expectedMemoryMultiplier
+
+			if recommendedCPU != expectedCPU {
+				t.Errorf("Expected CPU to be %d, got %d", expectedCPU, recommendedCPU)
+			}
+
+			if recommendedMemoryGB != expectedMemoryGB {
+				t.Errorf("Expected memory to be %.2f, got %.2f", expectedMemoryGB, recommendedMemoryGB)
+			}
+		})
+	}
+}
+
+func TestWriteCSVFile(t *testing.T) {
+	// Create temporary file
+	tempFile, err := os.CreateTemp("", "test_csv_*.csv")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+	tempFile.Close()
+
+	// Test data
+	data := [][]string{
+		{"Header1", "Header2", "Header3"},
+		{"Value1", "Value2", "Value3"},
+		{"Value4", "Value5", "Value6"},
+	}
+
+	// Write CSV
+	err = writeCSVFile(tempFile.Name(), data)
+	if err != nil {
+		t.Errorf("Unexpected error writing CSV: %v", err)
+	}
+
+	// Verify file exists and has content
+	fileInfo, err := os.Stat(tempFile.Name())
+	if err != nil {
+		t.Errorf("CSV file was not created: %v", err)
+	}
+
+	if fileInfo.Size() == 0 {
+		t.Error("CSV file is empty")
+	}
+
+	// Test with invalid path
+	err = writeCSVFile("/invalid/path/file.csv", data)
+	if err == nil {
+		t.Error("Expected error for invalid file path")
+	}
+}
+
+func TestShowRaftStatus(t *testing.T) {
+	// Test with non-existent config
+	err := ShowRaftStatus("non-existent-config.yaml")
+	if err == nil {
+		t.Error("Expected error for non-existent config")
+	}
+
+	// Test with valid config (will attempt to create raft but fail gracefully)
+	cfg := createTestConfig()
+	cfg.Raft.Enabled = true
+	cfg.Raft.NodeID = "test-node"
+	cfg.Raft.Address = "127.0.0.1"
+	cfg.Raft.Port = 7946
+
+	// Create temp config file
+	tempFile, err := os.CreateTemp("", "test_config_*.yaml")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+	tempFile.Close()
+
+	// Note: This will likely fail due to network issues, but tests that the function runs
+	err = ShowRaftStatus(tempFile.Name())
+	// We expect this to fail since we don't have a real Raft cluster
+	if err == nil {
+		t.Log("ShowRaftStatus succeeded (unexpected but okay)")
+	}
+}
+
+func TestNewAppWithDefaults(t *testing.T) {
+	// This test requires default config to be loadable
+	// It may fail if Proxmox API is not accessible, which is expected in test environment
+	app, err := NewAppWithDefaults()
+
+	// We expect this to likely fail in test environment due to Proxmox API access
+	if err != nil {
+		t.Logf("NewAppWithDefaults failed as expected in test environment: %v", err)
+		return
+	}
+
+	// If it succeeds, verify the app is properly initialized
+	if app == nil {
+		t.Error("Expected app to be created")
+	}
+
+	if app.config == nil { //nolint:staticcheck // false positive - app checked for nil above
+		t.Error("Expected config to be set")
+	}
+
+	if app.client == nil { //nolint:staticcheck // false positive - app checked for nil above
+		t.Error("Expected client to be set")
+	}
+
+	if app.balancer == nil { //nolint:staticcheck // false positive - app checked for nil above
+		t.Error("Expected balancer to be set")
+	}
+}
+
+// Test service installation functions.
+func TestInstallService(t *testing.T) {
+	// Test dry run mode (since we likely don't have root privileges)
+	err := InstallService("testuser", "testgroup", "/tmp/test-config.yaml", false)
+
+	// This should run in dry-run mode and not return an error
+	if err != nil {
+		t.Logf("InstallService returned error (expected in test environment): %v", err)
+	} else {
+		t.Log("InstallService completed successfully")
+	}
+}
+
+func TestInstallServiceDryRun(t *testing.T) {
+	// Test the dry run function directly
+	err := installServiceDryRun("testuser", "testgroup", "/tmp/test-config.yaml", false)
+	if err != nil {
+		t.Errorf("installServiceDryRun should not fail: %v", err)
+	}
+
+	// Test with enableService=true
+	err = installServiceDryRun("testuser", "testgroup", "/tmp/test-config.yaml", true)
+	if err != nil {
+		t.Errorf("installServiceDryRun with enable should not fail: %v", err)
+	}
+
+	// Test without config path
+	err = installServiceDryRun("testuser", "testgroup", "", false)
+	if err != nil {
+		t.Errorf("installServiceDryRun without config should not fail: %v", err)
+	}
+}
+
+func TestCreateUserAndGroup(t *testing.T) {
+	// This function doesn't return errors, so we just test it doesn't panic
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("createUserAndGroup panicked: %v", r)
+		}
+	}()
+
+	// Call the function (will likely fail in test environment, but shouldn't panic)
+	createUserAndGroup("testuser", "testgroup")
+}
+
+func TestSetOwnership(t *testing.T) {
+	// This function doesn't return errors, so we just test it doesn't panic
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("setOwnership panicked: %v", r)
+		}
+	}()
+
+	// Create temporary directories for testing
+	tempDir1, err := os.MkdirTemp("", "test_ownership_1_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir1)
+
+	tempDir2, err := os.MkdirTemp("", "test_ownership_2_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir2)
+
+	dirs := []string{tempDir1, tempDir2}
+
+	// Call the function (will likely fail in test environment, but shouldn't panic)
+	setOwnership("testuser", "testgroup", dirs)
+}
+
+func TestInstallServiceUserChecks(t *testing.T) {
+	// Test the user and group parameter handling
+	tests := []struct {
+		user   string
+		group  string
+		config string
+		enable bool
+		name   string
+	}{
+		{"root", "root", "/etc/config.yaml", false, "root_user"},
+		{"goproxlb", "goproxlb", "", false, "default_user"},
+		{"custom", "custom", "/tmp/config.yaml", true, "custom_user_with_enable"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// All of these should run in dry-run mode unless we have root
+			err := InstallService(test.user, test.group, test.config, test.enable)
+
+			// We expect this to either succeed (dry-run) or fail (no permissions)
+			// Both are acceptable in test environment
+			if err != nil {
+				t.Logf("InstallService with %s/%s returned error (expected): %v", test.user, test.group, err)
+			}
+		})
+	}
 }

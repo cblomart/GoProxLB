@@ -1,3 +1,4 @@
+// Package models defines the core data structures used throughout GoProxLB.
 package models
 
 import (

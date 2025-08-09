@@ -953,8 +953,6 @@ type VMProfile struct {
 }
 
 // AnalyzeVMProfile analyzes a VM's workload profile and provides recommendations.
-//
-//nolint:gocyclo // Complex VM profile analysis logic with multiple metrics
 func (b *AdvancedBalancer) AnalyzeVMProfile(vm *models.VM, nodeName string) VMProfile {
 	profile := VMProfile{
 		WorkloadType: "Unknown",
@@ -967,93 +965,13 @@ func (b *AdvancedBalancer) AnalyzeVMProfile(vm *models.VM, nodeName string) VMPr
 	// Get VM's load profile
 	loadProfile, exists := b.loadProfiles[vm.ID]
 	if exists {
-		// Analyze CPU pattern
-		switch loadProfile.CPUPattern.Type {
-		case "burst":
-			profile.WorkloadType = "Burst"
-			profile.Pattern = "CPU Burst"
-			profile.CPUBuffer = 70.0 // High buffer for burst workloads
-			profile.Recommendations = append(profile.Recommendations, "High CPU buffer (70%) recommended for burst workloads")
-		case "sustained":
-			profile.WorkloadType = "Sustained"
-			profile.Pattern = "CPU Sustained"
-			profile.CPUBuffer = 30.0 // Lower buffer for sustained workloads
-			profile.Recommendations = append(profile.Recommendations, "Moderate CPU buffer (30%) sufficient for sustained workloads")
-		case "idle":
-			profile.WorkloadType = "Idle"
-			profile.Pattern = "CPU Idle"
-			profile.CPUBuffer = 20.0 // Minimal buffer for idle workloads
-			profile.Recommendations = append(profile.Recommendations, "Minimal CPU buffer (20%) for idle workloads")
-		}
-
-		// Analyze memory pattern
-		switch loadProfile.MemoryPattern.Type {
-		case "static":
-			profile.MemoryBuffer = 30.0
-			profile.Recommendations = append(profile.Recommendations, "Static memory usage - minimal buffer (30%) sufficient")
-		case "growing":
-			profile.MemoryBuffer = 50.0
-			profile.Recommendations = append(profile.Recommendations, "Growing memory usage - moderate buffer (50%) recommended")
-		case "volatile":
-			profile.MemoryBuffer = 60.0
-			profile.Recommendations = append(profile.Recommendations, "Volatile memory usage - high buffer (60%) recommended")
-		}
-
-		// Analyze priority and criticality
-		switch loadProfile.Priority {
-		case models.PriorityRealtime:
-			profile.Criticality = criticalityLevelCritical
-			profile.CPUBuffer += 20.0 // Extra buffer for realtime
-			profile.Recommendations = append(profile.Recommendations, "Realtime priority - extra CPU buffer recommended")
-		case models.PriorityInteractive:
-			profile.Criticality = "Important"
-			profile.CPUBuffer += 10.0 // Extra buffer for interactive
-			profile.Recommendations = append(profile.Recommendations, "Interactive priority - moderate extra buffer recommended")
-		}
-
-		switch loadProfile.Criticality {
-		case models.CriticalityCritical:
-			profile.Criticality = criticalityLevelCritical
-			profile.Recommendations = append(profile.Recommendations, "Critical VM - ensure high availability and redundancy")
-		case models.CriticalityImportant:
-			profile.Criticality = "Important"
-			profile.Recommendations = append(profile.Recommendations, "Important VM - monitor closely and ensure adequate resources")
-		}
+		b.analyzeLoadProfileMetrics(&profile, loadProfile)
 	} else {
-		// Fallback analysis based on VM tags and type
-		profile.WorkloadType = "Standard"
-		profile.Pattern = "Unknown (no historical data)"
-
-		// Analyze tags for hints
-		for _, tag := range vm.Tags {
-			if strings.Contains(tag, "critical") || strings.Contains(tag, "essential") {
-				profile.Criticality = criticalityLevelCritical
-				profile.CPUBuffer = 70.0
-				profile.MemoryBuffer = 60.0
-				profile.Recommendations = append(profile.Recommendations, "Critical VM based on tags - high buffer recommended")
-			} else if strings.Contains(tag, "web") || strings.Contains(tag, "app") {
-				profile.WorkloadType = "Web/Application"
-				profile.CPUBuffer = 50.0
-				profile.MemoryBuffer = 40.0
-				profile.Recommendations = append(profile.Recommendations, "Web/Application VM - moderate buffer recommended")
-			} else if strings.Contains(tag, "db") || strings.Contains(tag, "database") {
-				profile.WorkloadType = "Database"
-				profile.CPUBuffer = 40.0
-				profile.MemoryBuffer = 50.0
-				profile.Recommendations = append(profile.Recommendations, "Database VM - memory-focused buffer recommended")
-			}
-		}
-
-		profile.Recommendations = append(profile.Recommendations, "No historical data available - using tag-based analysis")
+		b.analyzeFallbackProfile(&profile, vm)
 	}
 
 	// Cap buffers at 100%
-	if profile.CPUBuffer > 100.0 {
-		profile.CPUBuffer = 100.0
-	}
-	if profile.MemoryBuffer > 100.0 {
-		profile.MemoryBuffer = 100.0
-	}
+	b.capBufferValues(&profile)
 
 	return profile
 }
@@ -1123,4 +1041,111 @@ func (b *AdvancedBalancer) GetClusterRecommendations(forecastDuration time.Durat
 	}
 
 	return recommendations
+}
+
+// analyzeLoadProfileMetrics analyzes VM load profile metrics and updates the profile.
+func (b *AdvancedBalancer) analyzeLoadProfileMetrics(profile *VMProfile, loadProfile *models.LoadProfile) {
+	b.analyzeCPUPattern(profile, loadProfile)
+	b.analyzeMemoryPattern(profile, loadProfile)
+	b.analyzePriorityAndCriticality(profile, loadProfile)
+}
+
+// analyzeCPUPattern analyzes CPU usage patterns and updates the profile.
+func (b *AdvancedBalancer) analyzeCPUPattern(profile *VMProfile, loadProfile *models.LoadProfile) {
+	switch loadProfile.CPUPattern.Type {
+	case "burst":
+		profile.WorkloadType = "Burst"
+		profile.Pattern = "CPU Burst"
+		profile.CPUBuffer = 70.0 // High buffer for burst workloads
+		profile.Recommendations = append(profile.Recommendations, "High CPU buffer (70%) recommended for burst workloads")
+	case "sustained":
+		profile.WorkloadType = "Sustained"
+		profile.Pattern = "CPU Sustained"
+		profile.CPUBuffer = 30.0 // Lower buffer for sustained workloads
+		profile.Recommendations = append(profile.Recommendations, "Moderate CPU buffer (30%) sufficient for sustained workloads")
+	case "idle":
+		profile.WorkloadType = "Idle"
+		profile.Pattern = "CPU Idle"
+		profile.CPUBuffer = 20.0 // Minimal buffer for idle workloads
+		profile.Recommendations = append(profile.Recommendations, "Minimal CPU buffer (20%) for idle workloads")
+	}
+}
+
+// analyzeMemoryPattern analyzes memory usage patterns and updates the profile.
+func (b *AdvancedBalancer) analyzeMemoryPattern(profile *VMProfile, loadProfile *models.LoadProfile) {
+	switch loadProfile.MemoryPattern.Type {
+	case "static":
+		profile.MemoryBuffer = 30.0
+		profile.Recommendations = append(profile.Recommendations, "Static memory usage - minimal buffer (30%) sufficient")
+	case "growing":
+		profile.MemoryBuffer = 50.0
+		profile.Recommendations = append(profile.Recommendations, "Growing memory usage - moderate buffer (50%) recommended")
+	case "volatile":
+		profile.MemoryBuffer = 60.0
+		profile.Recommendations = append(profile.Recommendations, "Volatile memory usage - high buffer (60%) recommended")
+	}
+}
+
+// analyzePriorityAndCriticality analyzes priority and criticality settings and updates the profile.
+func (b *AdvancedBalancer) analyzePriorityAndCriticality(profile *VMProfile, loadProfile *models.LoadProfile) {
+	// Analyze priority
+	switch loadProfile.Priority {
+	case models.PriorityRealtime:
+		profile.Criticality = criticalityLevelCritical
+		profile.CPUBuffer += 20.0 // Extra buffer for realtime
+		profile.Recommendations = append(profile.Recommendations, "Realtime priority - extra CPU buffer recommended")
+	case models.PriorityInteractive:
+		profile.Criticality = "Important"
+		profile.CPUBuffer += 10.0 // Extra buffer for interactive
+		profile.Recommendations = append(profile.Recommendations, "Interactive priority - moderate extra buffer recommended")
+	}
+
+	// Analyze criticality
+	switch loadProfile.Criticality {
+	case models.CriticalityCritical:
+		profile.Criticality = criticalityLevelCritical
+		profile.Recommendations = append(profile.Recommendations, "Critical VM - ensure high availability and redundancy")
+	case models.CriticalityImportant:
+		profile.Criticality = "Important"
+		profile.Recommendations = append(profile.Recommendations, "Important VM - monitor closely and ensure adequate resources")
+	}
+}
+
+// analyzeFallbackProfile analyzes VM profile based on tags when no load profile exists.
+func (b *AdvancedBalancer) analyzeFallbackProfile(profile *VMProfile, vm *models.VM) {
+	// Fallback analysis based on VM tags and type
+	profile.WorkloadType = "Standard"
+	profile.Pattern = "Unknown (no historical data)"
+
+	// Analyze tags for hints
+	for _, tag := range vm.Tags {
+		if strings.Contains(tag, "critical") || strings.Contains(tag, "essential") {
+			profile.Criticality = criticalityLevelCritical
+			profile.CPUBuffer = 70.0
+			profile.MemoryBuffer = 60.0
+			profile.Recommendations = append(profile.Recommendations, "Critical VM based on tags - high buffer recommended")
+		} else if strings.Contains(tag, "web") || strings.Contains(tag, "app") {
+			profile.WorkloadType = "Web/Application"
+			profile.CPUBuffer = 50.0
+			profile.MemoryBuffer = 40.0
+			profile.Recommendations = append(profile.Recommendations, "Web/Application VM - moderate buffer recommended")
+		} else if strings.Contains(tag, "db") || strings.Contains(tag, "database") {
+			profile.WorkloadType = "Database"
+			profile.CPUBuffer = 40.0
+			profile.MemoryBuffer = 50.0
+			profile.Recommendations = append(profile.Recommendations, "Database VM - memory-focused buffer recommended")
+		}
+	}
+
+	profile.Recommendations = append(profile.Recommendations, "No historical data available - using tag-based analysis")
+}
+
+// capBufferValues ensures buffer values don't exceed 100%.
+func (b *AdvancedBalancer) capBufferValues(profile *VMProfile) {
+	if profile.CPUBuffer > 100.0 {
+		profile.CPUBuffer = 100.0
+	}
+	if profile.MemoryBuffer > 100.0 {
+		profile.MemoryBuffer = 100.0
+	}
 }

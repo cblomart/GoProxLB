@@ -1,3 +1,4 @@
+// Package raft implements distributed consensus for GoProxLB clustering.
 package raft
 
 import (

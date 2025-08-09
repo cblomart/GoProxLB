@@ -35,117 +35,31 @@ func NewDistributedApp(configPath string) (*DistributedApp, error) {
 }
 
 // NewDistributedAppWithSocketDir creates a new distributed load balancer application with custom socket directory.
-//
-//nolint:gocyclo // Complex distributed app initialization with multiple setup steps
 func NewDistributedAppWithSocketDir(configPath, socketDir string) (*DistributedApp, error) {
-	// Load configuration
-	config, err := config.Load(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Auto-detect cluster name if not specified
-	if config.Cluster.Name == "" {
-		client := proxmox.NewClient(&config.Proxmox)
-		if err := config.AutoDetectClusterName(client); err != nil {
-			return nil, fmt.Errorf("failed to auto-detect cluster name: %w", err)
-		}
-		fmt.Printf("Auto-detected cluster name: %s\n", config.Cluster.Name)
-	}
-
-	// Validate Raft configuration
-	if !config.Raft.Enabled {
-		return nil, fmt.Errorf("raft is not enabled in configuration")
-	}
-
-	if config.Raft.NodeID == "" {
-		return nil, fmt.Errorf("raft node_id is required when raft is enabled")
-	}
-
-	// Create Proxmox client
-	client := proxmox.NewClient(&config.Proxmox)
-
-	// Create discovery service for auto-discovery
-	discoveryService := proxmox.NewDiscoveryService(client, config.Raft.Port)
-
-	// Auto-discover peers if enabled
-	if config.Raft.AutoDiscover {
-		fmt.Println("Auto-discovering Raft parameters from Proxmox cluster...")
-
-		// Discover cluster nodes
-		nodes, err := discoveryService.DiscoverClusterNodes()
-		if err != nil {
-			return nil, fmt.Errorf("failed to discover cluster nodes: %w", err)
-		}
-		fmt.Printf("Discovered %d cluster nodes: %v\n", len(nodes), func() []string {
-			names := make([]string, len(nodes))
-			for i, node := range nodes {
-				names[i] = node.Name
-			}
-			return names
-		}())
-
-		// Get current node ID
-		currentNodeID, err := discoveryService.GetCurrentNodeID()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get current node ID: %w", err)
-		}
-		config.Raft.NodeID = currentNodeID
-		fmt.Printf("Current node ID: %s\n", config.Raft.NodeID)
-
-		// Get Raft peers
-		peers, err := discoveryService.GetRaftPeers(config.Raft.NodeID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get Raft peers: %w", err)
-		}
-		config.Raft.Peers = peers
-		fmt.Printf("Raft peers configured: %v\n", config.Raft.Peers)
-	}
-
-	// Create balancer
-	var balancerInstance BalancerInterface
-	if config.IsAdvancedBalancer() {
-		balancerInstance = balancer.NewAdvancedBalancer(client, config)
-	} else {
-		balancerInstance = balancer.NewBalancer(client, config)
-	}
-
-	// Create Raft node
-	fullAddress := fmt.Sprintf("%s:%d", config.Raft.Address, config.Raft.Port)
-	raftNode, err := raft.NewRaftNode(config.Raft.NodeID, fullAddress, config.Raft.DataDir, config.Raft.Peers)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Raft node: %w", err)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Create Unix domain socket for status endpoint
-	if socketDir == "" {
-		socketDir = "/var/lib/goproxlb"
-	}
-	socketPath := socketDir + "/status.sock"
-
-	// Remove existing socket file if it exists
-	_ = os.Remove(socketPath) // Ignore error if file doesn't exist
-
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(socketDir, 0750); err != nil {
-		cancel()
-		return nil, fmt.Errorf("failed to create socket directory: %w", err)
-	}
-
-	// Create Unix domain socket listener
-	addr := &net.UnixAddr{Name: socketPath, Net: "unix"}
-	listener, err := net.ListenUnix("unix", addr)
+	// Setup configuration and client
+	config, client, err := setupDistributedConfig(configPath)
 	if err != nil {
 		cancel()
-		return nil, fmt.Errorf("failed to create Unix socket: %w", err)
+		return nil, err
 	}
 
-	// Set socket permissions
-	if err := os.Chmod(socketPath, 0600); err != nil {
+	// Setup Raft components
+	raftNode, err := setupRaftComponents(config, client)
+	if err != nil {
 		cancel()
-		return nil, fmt.Errorf("failed to set socket permissions: %w", err)
+		return nil, err
+	}
+
+	// Setup balancer
+	balancerInstance := setupBalancer(client, config)
+
+	// Setup Unix socket listener
+	listener, err := setupUnixSocket(socketDir)
+	if err != nil {
+		cancel()
+		return nil, err
 	}
 
 	app := &DistributedApp{
@@ -156,7 +70,7 @@ func NewDistributedAppWithSocketDir(configPath, socketDir string) (*DistributedA
 		ctx:      ctx,
 		cancel:   cancel,
 		isLeader: false,
-		listener: listener,
+		listener: listener.(*net.UnixListener),
 	}
 
 	return app, nil
@@ -374,4 +288,142 @@ func (d *DistributedApp) GetStatus() map[string]interface{} {
 		"peers":             d.raftNode.GetPeers(),
 		"balancing_enabled": true, // Always enabled when running
 	}
+}
+
+// setupDistributedConfig loads and validates configuration for distributed app.
+func setupDistributedConfig(configPath string) (*config.Config, ClientInterface, error) {
+	// Load configuration
+	config, err := config.Load(configPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Auto-detect cluster name if not specified
+	if config.Cluster.Name == "" {
+		client := proxmox.NewClient(&config.Proxmox)
+		if err := config.AutoDetectClusterName(client); err != nil {
+			return nil, nil, fmt.Errorf("failed to auto-detect cluster name: %w", err)
+		}
+		fmt.Printf("Auto-detected cluster name: %s\n", config.Cluster.Name)
+	}
+
+	// Validate Raft configuration
+	if err := validateRaftConfig(config); err != nil {
+		return nil, nil, err
+	}
+
+	// Create Proxmox client
+	client := proxmox.NewClient(&config.Proxmox)
+
+	return config, client, nil
+}
+
+// validateRaftConfig validates Raft configuration settings.
+func validateRaftConfig(config *config.Config) error {
+	if !config.Raft.Enabled {
+		return fmt.Errorf("raft is not enabled in configuration")
+	}
+
+	if config.Raft.NodeID == "" {
+		return fmt.Errorf("raft node_id is required when raft is enabled")
+	}
+
+	return nil
+}
+
+// setupRaftComponents sets up Raft node with auto-discovery if enabled.
+func setupRaftComponents(config *config.Config, client ClientInterface) (*raft.RaftNode, error) {
+	// Create discovery service for auto-discovery
+	discoveryService := proxmox.NewDiscoveryService(client, config.Raft.Port)
+
+	// Auto-discover peers if enabled
+	if config.Raft.AutoDiscover {
+		if err := performAutoDiscovery(config, discoveryService); err != nil {
+			return nil, err
+		}
+	}
+
+	// Create Raft node
+	fullAddress := fmt.Sprintf("%s:%d", config.Raft.Address, config.Raft.Port)
+	raftNode, err := raft.NewRaftNode(config.Raft.NodeID, fullAddress, config.Raft.DataDir, config.Raft.Peers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Raft node: %w", err)
+	}
+
+	return raftNode, nil
+}
+
+// performAutoDiscovery discovers cluster nodes and configures Raft peers.
+func performAutoDiscovery(config *config.Config, discoveryService *proxmox.DiscoveryService) error {
+	fmt.Println("Auto-discovering Raft parameters from Proxmox cluster...")
+
+	// Discover cluster nodes
+	nodes, err := discoveryService.DiscoverClusterNodes()
+	if err != nil {
+		return fmt.Errorf("failed to discover cluster nodes: %w", err)
+	}
+	fmt.Printf("Discovered %d cluster nodes: %v\n", len(nodes), func() []string {
+		names := make([]string, len(nodes))
+		for i, node := range nodes {
+			names[i] = node.Name
+		}
+		return names
+	}())
+
+	// Get current node ID
+	currentNodeID, err := discoveryService.GetCurrentNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get current node ID: %w", err)
+	}
+	config.Raft.NodeID = currentNodeID
+	fmt.Printf("Current node ID: %s\n", config.Raft.NodeID)
+
+	// Get Raft peers
+	peers, err := discoveryService.GetRaftPeers(config.Raft.NodeID)
+	if err != nil {
+		return fmt.Errorf("failed to get Raft peers: %w", err)
+	}
+	config.Raft.Peers = peers
+	fmt.Printf("Raft peers configured: %v\n", config.Raft.Peers)
+
+	return nil
+}
+
+// setupBalancer creates the appropriate balancer instance.
+func setupBalancer(client ClientInterface, config *config.Config) BalancerInterface {
+	if config.IsAdvancedBalancer() {
+		return balancer.NewAdvancedBalancer(client, config)
+	}
+	return balancer.NewBalancer(client, config)
+}
+
+// setupUnixSocket creates and configures a Unix domain socket for status endpoint.
+func setupUnixSocket(socketDir string) (net.Listener, error) {
+	// Create Unix domain socket for status endpoint
+	if socketDir == "" {
+		socketDir = "/var/lib/goproxlb"
+	}
+	socketPath := socketDir + "/status.sock"
+
+	// Remove existing socket file if it exists
+	_ = os.Remove(socketPath) // Ignore error if file doesn't exist
+
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(socketDir, 0750); err != nil {
+		return nil, fmt.Errorf("failed to create socket directory: %w", err)
+	}
+
+	// Create Unix domain socket listener
+	addr := &net.UnixAddr{Name: socketPath, Net: "unix"}
+	listener, err := net.ListenUnix("unix", addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Unix socket: %w", err)
+	}
+
+	// Set socket permissions
+	if err := os.Chmod(socketPath, 0600); err != nil {
+		return nil, fmt.Errorf("failed to set socket permissions: %w", err)
+	}
+
+	return listener, nil
 }

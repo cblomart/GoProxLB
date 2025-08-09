@@ -1,3 +1,4 @@
+// Package rules provides rule engine functionality for load balancing decisions.
 package rules
 
 import (
@@ -188,79 +189,21 @@ func (e *Engine) GetIgnoredVMs() map[int]*models.IgnoredVM {
 }
 
 // ValidatePlacement validates if a VM can be placed on a specific node.
-//
-//nolint:gocyclo // Complex VM placement validation logic with multiple rule checks
 func (e *Engine) ValidatePlacement(vm *models.VM, targetNode string) error {
-	// Check if VM is ignored
-	if e.IsIgnored(vm.ID) {
-		return fmt.Errorf("VM %s is ignored and cannot be moved", vm.Name)
+	if err := e.validateIgnoreRules(vm); err != nil {
+		return err
 	}
 
-	// Check if VM is pinned to specific nodes
-	if e.IsPinned(vm.ID) {
-		pinnedNodes := e.GetPinnedNodes(vm.ID)
-		nodeAllowed := false
-		for _, node := range pinnedNodes {
-			if node == targetNode {
-				nodeAllowed = true
-				break
-			}
-		}
-		if !nodeAllowed {
-			return fmt.Errorf("VM %s is pinned to nodes %v, cannot move to %s", vm.Name, pinnedNodes, targetNode)
-		}
+	if err := e.validatePinningRules(vm, targetNode); err != nil {
+		return err
 	}
 
-	// Check affinity rules
-	for _, group := range e.affinityGroups {
-		for i := range group.VMs {
-			groupVM := &group.VMs[i]
-			if groupVM.ID == vm.ID {
-				// This VM is part of an affinity group
-				// Check if any other VM in the group is on the target node
-				hasAffinityVM := false
-				for j := range group.VMs {
-					otherVM := &group.VMs[j]
-					if otherVM.ID != vm.ID && otherVM.Node == targetNode {
-						hasAffinityVM = true
-						break
-					}
-				}
-				if !hasAffinityVM {
-					// Check if there are other VMs in the group that are not on the target node
-					otherVMsOnDifferentNodes := false
-					for k := range group.VMs {
-						otherVM := &group.VMs[k]
-						if otherVM.ID != vm.ID && otherVM.Node != targetNode {
-							otherVMsOnDifferentNodes = true
-							break
-						}
-					}
-					if otherVMsOnDifferentNodes {
-						return fmt.Errorf("VM %s is part of affinity group %s, but no other VMs in the group are on %s", vm.Name, group.Tag, targetNode)
-					}
-				}
-				break
-			}
-		}
+	if err := e.validateAffinityRules(vm, targetNode); err != nil {
+		return err
 	}
 
-	// Check anti-affinity rules
-	for _, group := range e.antiAffinityGroups {
-		for i := range group.VMs {
-			groupVM := &group.VMs[i]
-			if groupVM.ID == vm.ID {
-				// This VM is part of an anti-affinity group
-				// Check if any other VM in the group is on the target node
-				for j := range group.VMs {
-					otherVM := &group.VMs[j]
-					if otherVM.ID != vm.ID && otherVM.Node == targetNode {
-						return fmt.Errorf("VM %s is part of anti-affinity group %s, but another VM in the group is already on %s", vm.Name, group.Tag, targetNode)
-					}
-				}
-				break
-			}
-		}
+	if err := e.validateAntiAffinityRules(vm, targetNode); err != nil {
+		return err
 	}
 
 	return nil
@@ -277,4 +220,109 @@ func (e *Engine) GetValidTargetNodes(vm *models.VM, availableNodes []string) []s
 	}
 
 	return validNodes
+}
+
+// validateIgnoreRules validates if a VM is ignored.
+func (e *Engine) validateIgnoreRules(vm *models.VM) error {
+	if e.IsIgnored(vm.ID) {
+		return fmt.Errorf("VM %s is ignored and cannot be moved", vm.Name)
+	}
+	return nil
+}
+
+// validatePinningRules validates if a VM can be moved to a target node based on pinning rules.
+func (e *Engine) validatePinningRules(vm *models.VM, targetNode string) error {
+	if !e.IsPinned(vm.ID) {
+		return nil
+	}
+
+	pinnedNodes := e.GetPinnedNodes(vm.ID)
+	for _, node := range pinnedNodes {
+		if node == targetNode {
+			return nil // Node is allowed
+		}
+	}
+
+	return fmt.Errorf("VM %s is pinned to nodes %v, cannot move to %s", vm.Name, pinnedNodes, targetNode)
+}
+
+// validateAffinityRules validates affinity rules for VM placement.
+func (e *Engine) validateAffinityRules(vm *models.VM, targetNode string) error {
+	for _, group := range e.affinityGroups {
+		if vmGroup := e.findVMInAffinityGroup(vm.ID, group); vmGroup != nil {
+			return e.checkAffinityConstraints(vm, targetNode, group)
+		}
+	}
+	return nil
+}
+
+// validateAntiAffinityRules validates anti-affinity rules for VM placement.
+func (e *Engine) validateAntiAffinityRules(vm *models.VM, targetNode string) error {
+	for _, group := range e.antiAffinityGroups {
+		if vmGroup := e.findVMInAntiAffinityGroup(vm.ID, group); vmGroup != nil {
+			return e.checkAntiAffinityConstraints(vm, targetNode, group)
+		}
+	}
+	return nil
+}
+
+// findVMInAffinityGroup finds a VM in an affinity group.
+func (e *Engine) findVMInAffinityGroup(vmID int, group *models.AffinityGroup) *models.VM {
+	for i := range group.VMs {
+		groupVM := &group.VMs[i]
+		if groupVM.ID == vmID {
+			return groupVM
+		}
+	}
+	return nil
+}
+
+// checkAffinityConstraints checks if a VM can be placed on a target node based on affinity rules.
+func (e *Engine) checkAffinityConstraints(vm *models.VM, targetNode string, group *models.AffinityGroup) error {
+	// Check if any other VM in the group is on the target node
+	hasAffinityVM := false
+	for j := range group.VMs {
+		otherVM := &group.VMs[j]
+		if otherVM.ID != vm.ID && otherVM.Node == targetNode {
+			hasAffinityVM = true
+			break
+		}
+	}
+
+	if hasAffinityVM {
+		return nil // Affinity constraint satisfied
+	}
+
+	// Check if there are other VMs in the group that are not on the target node
+	for k := range group.VMs {
+		otherVM := &group.VMs[k]
+		if otherVM.ID != vm.ID && otherVM.Node != targetNode {
+			return fmt.Errorf("VM %s is part of affinity group %s, but no other VMs in the group are on %s", vm.Name, group.Tag, targetNode)
+		}
+	}
+
+	return nil // No constraint violation
+}
+
+// findVMInAntiAffinityGroup finds a VM in an anti-affinity group.
+func (e *Engine) findVMInAntiAffinityGroup(vmID int, group *models.AntiAffinityGroup) *models.VM {
+	for i := range group.VMs {
+		groupVM := &group.VMs[i]
+		if groupVM.ID == vmID {
+			return groupVM
+		}
+	}
+	return nil
+}
+
+// checkAntiAffinityConstraints checks if a VM can be placed on a target node based on anti-affinity rules.
+func (e *Engine) checkAntiAffinityConstraints(vm *models.VM, targetNode string, group *models.AntiAffinityGroup) error {
+	// Check if any other VM in the group is on the target node
+	for j := range group.VMs {
+		otherVM := &group.VMs[j]
+		if otherVM.ID != vm.ID && otherVM.Node == targetNode {
+			return fmt.Errorf("VM %s is part of anti-affinity group %s, but another VM in the group is already on %s", vm.Name, group.Tag, targetNode)
+		}
+	}
+	return nil
 }
