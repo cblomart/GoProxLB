@@ -67,8 +67,8 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the load balancer daemon",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
-		balancerType, _ := cmd.Flags().GetString("balancer-type")
+		configPath, _ := cmd.Flags().GetString("config") //nolint:errcheck // flag parsing errors are handled by cobra
+		balancerType, _ := cmd.Flags().GetString("balancer-type") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.StartWithBalancerType(configPath, balancerType)
 	},
 }
@@ -77,9 +77,9 @@ var balanceCmd = &cobra.Command{
 	Use:   "balance",
 	Short: "Force a balancing cycle",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
-		force, _ := cmd.Flags().GetBool("force")
-		balancerType, _ := cmd.Flags().GetString("balancer-type")
+		configPath, _ := cmd.Flags().GetString("config") //nolint:errcheck // flag parsing errors are handled by cobra
+		force, _ := cmd.Flags().GetBool("force") //nolint:errcheck // flag parsing errors are handled by cobra
+		balancerType, _ := cmd.Flags().GetString("balancer-type") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.ForceBalanceWithBalancerType(configPath, force, balancerType)
 	},
 }
@@ -88,7 +88,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show cluster status",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
+		configPath, _ := cmd.Flags().GetString("config") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.ShowStatus(configPath)
 	},
 }
@@ -97,7 +97,7 @@ var clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "Show cluster information",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
+		configPath, _ := cmd.Flags().GetString("config") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.ShowClusterInfo(configPath)
 	},
 }
@@ -106,7 +106,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all VMs",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
+		configPath, _ := cmd.Flags().GetString("config") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.ListVMs(configPath)
 	},
 }
@@ -120,10 +120,10 @@ var capacityCmd = &cobra.Command{
 - Resource adaptation recommendations
 - Buffer requirements based on workload patterns`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
-		detailed, _ := cmd.Flags().GetBool("detailed")
-		forecast, _ := cmd.Flags().GetString("forecast")
-		csvOutput, _ := cmd.Flags().GetString("csv")
+		configPath, _ := cmd.Flags().GetString("config") //nolint:errcheck // flag parsing errors are handled by cobra
+		detailed, _ := cmd.Flags().GetBool("detailed") //nolint:errcheck // flag parsing errors are handled by cobra
+		forecast, _ := cmd.Flags().GetString("forecast") //nolint:errcheck // flag parsing errors are handled by cobra
+		csvOutput, _ := cmd.Flags().GetString("csv") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.ShowCapacityPlanning(configPath, detailed, forecast, csvOutput)
 	},
 }
@@ -138,7 +138,7 @@ var raftCmd = &cobra.Command{
 - Cluster health and quorum status
 - Auto-discovery information`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, _ := cmd.Flags().GetString("config")
+		configPath, _ := cmd.Flags().GetString("config") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.ShowRaftStatus(configPath)
 	},
 }
@@ -160,7 +160,7 @@ Examples:
   goproxlb install --user root       # Install as root user
   goproxlb install --enable          # Enable and start service on boot`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		enableService, _ := cmd.Flags().GetBool("enable")
+		enableService, _ := cmd.Flags().GetBool("enable") //nolint:errcheck // flag parsing errors are handled by cobra
 		return app.InstallService(serviceUser, serviceGroup, configPath, enableService)
 	},
 }

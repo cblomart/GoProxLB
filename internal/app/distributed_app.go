@@ -152,9 +152,9 @@ func (d *DistributedApp) Stop() error {
 
 	// Close Unix socket gracefully
 	if d.listener != nil {
-		_ = d.listener.Close() // Ignore error on close
+		_ = d.listener.Close() //nolint:errcheck // cleanup operation, error not actionable
 		// Remove socket file
-		_ = os.Remove("/var/lib/goproxlb/status.sock") // Ignore error if file doesn't exist
+		_ = os.Remove("/var/lib/goproxlb/status.sock") //nolint:errcheck // cleanup operation, error not actionable
 	}
 
 	return d.raftNode.Stop()
@@ -257,7 +257,7 @@ func (d *DistributedApp) runBalancingCycle() error {
 
 // handleStatusRequest handles status requests from Unix socket clients.
 func (d *DistributedApp) handleStatusRequest(conn net.Conn) {
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // connection cleanup, error not actionable
 
 	// Get current status
 	status := d.GetStatus()
@@ -406,7 +406,7 @@ func setupUnixSocket(socketDir string) (net.Listener, error) {
 	socketPath := socketDir + "/status.sock"
 
 	// Remove existing socket file if it exists
-	_ = os.Remove(socketPath) // Ignore error if file doesn't exist
+	_ = os.Remove(socketPath) //nolint:errcheck // cleanup operation, error not actionable
 
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(socketDir, 0750); err != nil {

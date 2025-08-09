@@ -58,7 +58,7 @@ func (c *Client) GetClusterInfo() (*models.Cluster, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cluster status: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	var clusterResp struct {
 		Data []struct {
@@ -97,7 +97,7 @@ func (c *Client) GetNodes() ([]models.Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nodes: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	var nodesResp struct {
 		Data []struct {
@@ -134,7 +134,7 @@ func (c *Client) getNodeDetails(nodeName string) (*models.Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get node status: %w", err)
 	}
-	defer statusResp.Body.Close()
+	defer statusResp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	var statusData struct {
 		Data struct {
@@ -165,7 +165,7 @@ func (c *Client) getNodeDetails(nodeName string) (*models.Node, error) {
 	var cores int
 	var model string
 	if err == nil {
-		defer nodeInfoResp.Body.Close()
+		defer nodeInfoResp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 		var nodeInfo struct {
 			Data struct {
 				CPUInfo string `json:"cpuinfo"`
@@ -230,7 +230,7 @@ func (c *Client) getNodeVMs(nodeName string) ([]models.VM, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get VMs: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	var vmsResp struct {
 		Data []struct {
@@ -283,7 +283,7 @@ func (c *Client) getNodeContainers(nodeName string) ([]models.VM, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get containers: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	var containersResp struct {
 		Data []struct {
@@ -332,10 +332,10 @@ func (c *Client) MigrateVM(vmID int, sourceNode, targetNode string) error {
 	if err != nil {
 		return fmt.Errorf("failed to migrate VM %d: %w", vmID, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body) //nolint:errcheck // debug output, error not critical
 		return fmt.Errorf("migration failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -349,7 +349,7 @@ func (c *Client) GetNodeHistoricalData(nodeName, timeframe string) ([]Historical
 	if err != nil {
 		return nil, fmt.Errorf("failed to get historical data for node %s: %w", nodeName, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	var rrdResp struct {
 		Data []struct {
@@ -384,7 +384,7 @@ func (c *Client) GetVMHistoricalData(nodeName string, vmID int, vmType, timefram
 	if err != nil {
 		return nil, fmt.Errorf("failed to get historical data for VM %d: %w", vmID, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // response body cleanup, error not actionable
 
 	var rrdResp struct {
 		Data []struct {

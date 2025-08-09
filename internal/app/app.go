@@ -524,7 +524,7 @@ func writeCSVFile(filename string, data [][]string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // file is being written, close error not actionable
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
@@ -602,7 +602,7 @@ func fetchRaftStatus() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // connection cleanup, error not actionable
 
 	// Send HTTP GET request
 	request := "GET /status HTTP/1.1\r\nHost: localhost\r\n\r\n"
@@ -1000,10 +1000,10 @@ func parseForecastDuration(forecast string) time.Duration {
 	if err != nil {
 		// Try parsing as weeks/months
 		if strings.HasSuffix(forecast, "w") {
-			weeks, _ := strconv.Atoi(strings.TrimSuffix(forecast, "w"))
+			weeks, _ := strconv.Atoi(strings.TrimSuffix(forecast, "w")) //nolint:errcheck // default value used on error
 			forecastDuration = time.Duration(weeks) * 7 * 24 * time.Hour
 		} else if strings.HasSuffix(forecast, "m") {
-			months, _ := strconv.Atoi(strings.TrimSuffix(forecast, "m"))
+			months, _ := strconv.Atoi(strings.TrimSuffix(forecast, "m")) //nolint:errcheck // default value used on error
 			forecastDuration = time.Duration(months) * 30 * 24 * time.Hour
 		} else {
 			forecastDuration = 7 * 24 * time.Hour // Default to 1 week

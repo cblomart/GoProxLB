@@ -173,7 +173,7 @@ func (d *DiscoveryService) checkGoProxLBService(nodeIP string) bool {
 	if err != nil {
 		return false
 	}
-	_ = conn.Close() // Ignore error on close
+	_ = conn.Close() //nolint:errcheck // connection cleanup, error not actionable
 
 	return true
 }
