@@ -540,32 +540,48 @@ func writeCSVFile(filename string, data [][]string) error {
 
 // ShowRaftStatus shows detailed Raft cluster status information.
 func ShowRaftStatus(configPath string) error {
-	var app *App
-	var err error
-
-	if configPath == "" {
-		app, err = NewAppWithDefaults()
-	} else {
-		app, err = NewApp(configPath)
-	}
-
+	app, err := initializeApp(configPath)
 	if err != nil {
 		return err
 	}
 	defer app.cancel()
 
-	// Check if Raft is enabled
 	if !app.config.Raft.Enabled {
-		fmt.Println("=== Raft Status ===")
-		fmt.Println("Raft is not enabled in configuration")
-		fmt.Println("This is a single-node deployment")
+		displaySingleNodeStatus()
 		return nil
 	}
 
-	// Try to connect to the Unix socket
-	socketPath := "/var/lib/goproxlb/status.sock"
-	conn, err := net.Dial("unix", socketPath)
+	status, err := fetchRaftStatus()
 	if err != nil {
+		displayServiceNotFound(configPath)
+		return nil
+	}
+
+	displayRaftClusterStatus(status)
+	displayClusterHealth(status)
+	displayAutoDiscoveryStatus(app)
+	displayRaftConfiguration(app)
+
+	return nil
+}
+
+// initializeApp creates a new app instance with the given config path.
+func initializeApp(configPath string) (*App, error) {
+	if configPath == "" {
+		return NewAppWithDefaults()
+	}
+	return NewApp(configPath)
+}
+
+// displaySingleNodeStatus shows status for single-node deployments.
+func displaySingleNodeStatus() {
+		fmt.Println("=== Raft Status ===")
+		fmt.Println("Raft is not enabled in configuration")
+		fmt.Println("This is a single-node deployment")
+}
+
+// displayServiceNotFound shows message when GoProxLB service is not running.
+func displayServiceNotFound(configPath string) {
 		fmt.Println("=== Raft Status ===")
 		fmt.Println("⚠️  No running GoProxLB service found")
 		fmt.Println("Please start GoProxLB in distributed mode first:")
@@ -576,73 +592,91 @@ func ShowRaftStatus(configPath string) error {
 		}
 		fmt.Println()
 		fmt.Println("The service will expose status at:")
-		fmt.Printf("  %s\n", socketPath)
-		return nil
+	fmt.Printf("  %s\n", "/var/lib/goproxlb/status.sock")
+}
+
+// fetchRaftStatus connects to the Unix socket and retrieves Raft status.
+func fetchRaftStatus() (map[string]interface{}, error) {
+	socketPath := "/var/lib/goproxlb/status.sock"
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		return nil, err
 	}
 	defer conn.Close()
 
-	// Send HTTP GET request to the socket
+	// Send HTTP GET request
 	request := "GET /status HTTP/1.1\r\nHost: localhost\r\n\r\n"
-	_, err = conn.Write([]byte(request))
-	if err != nil {
-		fmt.Printf("Error writing request: %v\n", err)
-		return err
+	if _, err = conn.Write([]byte(request)); err != nil {
+		return nil, fmt.Errorf("error writing request: %w", err)
 	}
 
-	// Read response
+	// Read and parse response
 	response, err := io.ReadAll(conn)
 	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
-		return err
+		return nil, fmt.Errorf("error reading response: %w", err)
 	}
 
-	// Parse HTTP response to extract JSON body
+	return parseHTTPResponse(response)
+}
+
+// parseHTTPResponse extracts JSON from HTTP response.
+func parseHTTPResponse(response []byte) (map[string]interface{}, error) {
 	parts := bytes.Split(response, []byte("\r\n\r\n"))
 	if len(parts) < 2 {
-		fmt.Printf("Invalid response format\n")
-		return nil
+		return nil, fmt.Errorf("invalid response format")
 	}
 
-	// Parse status JSON
 	var status map[string]interface{}
 	if err := json.Unmarshal(parts[1], &status); err != nil {
-		fmt.Printf("Error parsing status response: %v\n", err)
-		return err
+		return nil, fmt.Errorf("error parsing status response: %w", err)
 	}
 
-	// Display status
+	return status, nil
+}
+
+// displayRaftClusterStatus shows basic Raft cluster information.
+func displayRaftClusterStatus(status map[string]interface{}) {
 	fmt.Println("=== Raft Cluster Status ===")
 	fmt.Printf("Node ID: %s\n", status["node_id"])
 	fmt.Printf("Address: %s\n", status["address"])
 	fmt.Printf("Current State: %s\n", status["raft_state"])
 	fmt.Printf("Is Leader: %v\n", status["is_leader"])
 	fmt.Printf("Current Leader: %s\n", status["leader"])
+}
 
-	if peers, ok := status["peers"].([]interface{}); ok {
+// displayClusterHealth shows cluster health information including quorum status.
+func displayClusterHealth(status map[string]interface{}) {
+	peers, ok := status["peers"].([]interface{})
+	if !ok {
+		return
+	}
+
 		peerStrings := make([]string, len(peers))
 		for i, peer := range peers {
 			peerStrings[i] = peer.(string)
 		}
 		fmt.Printf("Peers (%d): %v\n", len(peerStrings), peerStrings)
 
-		// Show cluster health
 		fmt.Println("\n=== Cluster Health ===")
 		if len(peerStrings) == 0 {
 			fmt.Println("⚠️  No peers configured - single node cluster")
-		} else {
-			quorumSize := (len(peerStrings)+1)/2 + 1 // +1 for current node
-			fmt.Printf("Quorum size: %d nodes\n", quorumSize)
-			fmt.Printf("Total nodes: %d nodes\n", len(peerStrings)+1)
+		return
+	}
 
-			if len(peerStrings)+1 >= quorumSize {
+			quorumSize := (len(peerStrings)+1)/2 + 1 // +1 for current node
+	totalNodes := len(peerStrings) + 1
+			fmt.Printf("Quorum size: %d nodes\n", quorumSize)
+	fmt.Printf("Total nodes: %d nodes\n", totalNodes)
+
+	if totalNodes >= quorumSize {
 				fmt.Println("✅ Cluster has quorum")
 			} else {
 				fmt.Println("❌ Cluster does not have quorum")
-			}
 		}
 	}
 
-	// Show auto-discovery information
+// displayAutoDiscoveryStatus shows auto-discovery configuration status.
+func displayAutoDiscoveryStatus(app *App) {
 	fmt.Println("\n=== Auto-Discovery ===")
 	if app.config.Raft.AutoDiscover {
 		fmt.Println("✅ Auto-discovery enabled")
@@ -651,21 +685,21 @@ func ShowRaftStatus(configPath string) error {
 		fmt.Println("❌ Auto-discovery disabled")
 		fmt.Println("Peers must be manually configured")
 	}
+	}
 
-	// Show Raft configuration
+// displayRaftConfiguration shows Raft configuration details.
+func displayRaftConfiguration(app *App) {
 	fmt.Println("\n=== Raft Configuration ===")
 	fmt.Printf("Data Directory: %s\n", app.config.Raft.DataDir)
 	fmt.Printf("Port: %d\n", app.config.Raft.Port)
 	fmt.Printf("Auto-Discover: %v\n", app.config.Raft.AutoDiscover)
-
-	return nil
 }
 
 // InstallService installs the GoProxLB service as a systemd service.
 func InstallService(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
-
+	
 	// Check if we're running as root (required for systemd installation)
 	if os.Geteuid() != 0 {
 		fmt.Println("⚠️  Warning: This command requires root privileges to install systemd services.")
@@ -674,7 +708,7 @@ func InstallService(user, group, configPath string, enableService bool) error {
 		fmt.Println()
 		return installServiceDryRun(user, group, configPath, enableService)
 	}
-
+	
 	// Determine executable path
 	execPath := os.Args[0]
 	if !filepath.IsAbs(execPath) {
@@ -683,7 +717,7 @@ func InstallService(user, group, configPath string, enableService bool) error {
 			execPath = absPath
 		}
 	}
-
+	
 	// Build service command
 	var serviceExec string
 	if configPath != "" {
@@ -731,7 +765,7 @@ WantedBy=multi-user.target
 		"/etc/goproxlb",
 		"/var/log/goproxlb",
 	}
-
+	
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
@@ -761,19 +795,19 @@ WantedBy=multi-user.target
 		if err := exec.Command("systemctl", "enable", serviceName).Run(); err != nil {
 			return fmt.Errorf("failed to enable service: %w", err)
 		}
-
+		
 		// Start service
 		if err := exec.Command("systemctl", "start", serviceName).Run(); err != nil {
 			return fmt.Errorf("failed to start service: %w", err)
 		}
-
+		
 		fmt.Printf("✅ Service enabled and started successfully.\n")
 	}
 
 	fmt.Printf("✅ Service file %s created successfully.\n", serviceFilePath)
 	fmt.Printf("✅ User '%s' and group '%s' created.\n", user, group)
 	fmt.Printf("✅ Directories created with proper permissions.\n")
-
+	
 	if !enableService {
 		fmt.Printf("\n📋 Next steps:\n")
 		fmt.Printf("1. Enable service: sudo systemctl enable %s\n", serviceName)
@@ -794,7 +828,7 @@ WantedBy=multi-user.target
 func installServiceDryRun(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
-
+	
 	// Determine executable path
 	execPath := os.Args[0]
 	if !filepath.IsAbs(execPath) {
@@ -803,7 +837,7 @@ func installServiceDryRun(user, group, configPath string, enableService bool) er
 			execPath = absPath
 		}
 	}
-
+	
 	// Build service command
 	var serviceExec string
 	if configPath != "" {
