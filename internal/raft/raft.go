@@ -14,19 +14,38 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
+// RaftPeer represents a Raft peer with both ID and address.
+type RaftPeer struct {
+	NodeID  string
+	Address string
+}
+
 // RaftNode represents a Raft node for leader election.
 type RaftNode struct {
 	raft       *raft.Raft
 	nodeID     string
 	address    string
 	dataDir    string
-	peers      []string
+	peers      []RaftPeer
 	leaderChan chan bool
 	shutdownCh chan struct{}
 }
 
-// NewRaftNode creates a new Raft node for leader election.
+// NewRaftNode creates a new Raft node for leader election (backward compatibility).
 func NewRaftNode(nodeID, address, dataDir string, peers []string) (*RaftNode, error) {
+	// Convert string peers to RaftPeer format for backward compatibility
+	var raftPeers []RaftPeer
+	for _, peer := range peers {
+		raftPeers = append(raftPeers, RaftPeer{
+			NodeID:  peer, // Use address as ID (old behavior)
+			Address: peer,
+		})
+	}
+	return NewRaftNodeWithPeers(nodeID, address, dataDir, raftPeers)
+}
+
+// NewRaftNodeWithPeers creates a new Raft node with proper peer information.
+func NewRaftNodeWithPeers(nodeID, address, dataDir string, peers []RaftPeer) (*RaftNode, error) {
 	// Create data directory if it doesn't exist
 	if err := os.MkdirAll(dataDir, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
@@ -82,7 +101,13 @@ func NewRaftNode(nodeID, address, dataDir string, peers []string) (*RaftNode, er
 	}
 
 	// Bootstrap the cluster if this is the first node
+	fmt.Printf("DEBUG: Raft bootstrap - peers count: %d\n", len(peers))
+	for i, peer := range peers {
+		fmt.Printf("DEBUG: Raft bootstrap - peer %d: %s\n", i, peer)
+	}
+
 	if len(peers) == 0 {
+		fmt.Printf("DEBUG: Bootstrapping single-node cluster\n")
 		configuration := raft.Configuration{
 			Servers: []raft.Server{
 				{
@@ -93,6 +118,7 @@ func NewRaftNode(nodeID, address, dataDir string, peers []string) (*RaftNode, er
 		}
 		r.BootstrapCluster(configuration)
 	} else {
+		fmt.Printf("DEBUG: Bootstrapping multi-node cluster with %d peers\n", len(peers))
 		// Add this node to the cluster
 		servers := []raft.Server{
 			{
@@ -103,10 +129,16 @@ func NewRaftNode(nodeID, address, dataDir string, peers []string) (*RaftNode, er
 
 		// Add other peers
 		for _, peer := range peers {
+			fmt.Printf("DEBUG: Adding peer to bootstrap: NodeID=%s, Address=%s\n", peer.NodeID, peer.Address)
 			servers = append(servers, raft.Server{
-				ID:      raft.ServerID(peer),
-				Address: raft.ServerAddress(peer),
+				ID:      raft.ServerID(peer.NodeID),
+				Address: raft.ServerAddress(peer.Address),
 			})
+		}
+
+		fmt.Printf("DEBUG: Final server configuration has %d servers\n", len(servers))
+		for i, server := range servers {
+			fmt.Printf("DEBUG: Server %d: ID=%s, Address=%s\n", i, server.ID, server.Address)
 		}
 
 		configuration := raft.Configuration{Servers: servers}
@@ -186,7 +218,7 @@ func (r *RaftNode) GetState() raft.RaftState {
 }
 
 // GetPeers returns the list of peers.
-func (r *RaftNode) GetPeers() []string {
+func (r *RaftNode) GetPeers() []RaftPeer {
 	return r.peers
 }
 

@@ -128,8 +128,15 @@ func (d *DistributedApp) Start() error {
 	// Start leader monitoring
 	go d.monitorLeadership()
 
-	// Start balancing loop if enabled (always enabled when running)
-	d.startBalancingLoop()
+	// Check if this node is the leader and start balancing accordingly
+	if d.raftNode.IsLeader() {
+		fmt.Println("🎉 This node is the leader - starting load balancing...")
+		d.isLeader = true
+		d.startBalancingLoop()
+	} else {
+		fmt.Println("📋 This node is a follower - load balancing will be handled by the leader")
+		d.isLeader = false
+	}
 
 	fmt.Println("Distributed load balancer started. Press Ctrl+C to stop.")
 
@@ -164,6 +171,10 @@ func (d *DistributedApp) Stop() error {
 func (d *DistributedApp) monitorLeadership() {
 	leaderChan := d.raftNode.GetLeaderChan()
 
+	// Start a ticker for periodic status logging
+	statusTicker := time.NewTicker(5 * time.Minute) // Log status every 5 minutes
+	defer statusTicker.Stop()
+
 	for {
 		select {
 		case <-d.ctx.Done():
@@ -177,6 +188,16 @@ func (d *DistributedApp) monitorLeadership() {
 				fmt.Println("📉 This node is no longer the leader - stopping load balancing...")
 				d.isLeader = false
 				d.stopBalancingLoop()
+			}
+		case <-statusTicker.C:
+			// Periodic status logging for followers
+			if !d.isLeader {
+				currentLeader := d.raftNode.GetLeader()
+				if currentLeader != "" {
+					fmt.Printf("📋 Follower node standing by - leader is %s\n", currentLeader)
+				} else {
+					fmt.Println("⚡ Follower node - waiting for leader election...")
+				}
 			}
 		}
 	}
@@ -324,8 +345,9 @@ func validateRaftConfig(config *config.Config) error {
 		return fmt.Errorf("raft is not enabled in configuration")
 	}
 
-	if config.Raft.NodeID == "" {
-		return fmt.Errorf("raft node_id is required when raft is enabled")
+	// Allow empty node_id if auto-discovery is enabled
+	if config.Raft.NodeID == "" && !config.Raft.AutoDiscover {
+		return fmt.Errorf("raft node_id is required when raft is enabled and auto_discover is false")
 	}
 
 	return nil
@@ -336,16 +358,43 @@ func setupRaftComponents(config *config.Config, client ClientInterface) (*raft.R
 	// Create discovery service for auto-discovery
 	discoveryService := proxmox.NewDiscoveryService(client, config.Raft.Port)
 
+	var raftPeers []proxmox.RaftPeer
+
 	// Auto-discover peers if enabled
 	if config.Raft.AutoDiscover {
-		if err := performAutoDiscovery(config, discoveryService); err != nil {
+		var err error
+		raftPeers, err = performAutoDiscoveryWithPeers(config, discoveryService)
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	// Create Raft node
-	fullAddress := fmt.Sprintf("%s:%d", config.Raft.Address, config.Raft.Port)
-	raftNode, err := raft.NewRaftNode(config.Raft.NodeID, fullAddress, config.Raft.DataDir, config.Raft.Peers)
+	// Auto-detect bind address if not specified
+	bindAddress := config.Raft.Address
+	if bindAddress == "" || bindAddress == "0.0.0.0" {
+		// Use discovery service to get the correct address for this node
+		detectedAddress, err := discoveryService.GetNodeAddress(config.Raft.NodeID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to auto-detect bind address: %w", err)
+		}
+		bindAddress = detectedAddress
+		fmt.Printf("Auto-detected bind address: %s\n", bindAddress)
+	} else {
+		// Use configured address with port
+		bindAddress = fmt.Sprintf("%s:%d", bindAddress, config.Raft.Port)
+	}
+
+	// Convert proxmox.RaftPeer to raft.RaftPeer
+	var raftNodePeers []raft.RaftPeer
+	for _, peer := range raftPeers {
+		raftNodePeers = append(raftNodePeers, raft.RaftPeer{
+			NodeID:  peer.NodeID,
+			Address: peer.Address,
+		})
+	}
+
+	// Create Raft node with proper peer information
+	raftNode, err := raft.NewRaftNodeWithPeers(config.Raft.NodeID, bindAddress, config.Raft.DataDir, raftNodePeers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Raft node: %w", err)
 	}
@@ -353,14 +402,14 @@ func setupRaftComponents(config *config.Config, client ClientInterface) (*raft.R
 	return raftNode, nil
 }
 
-// performAutoDiscovery discovers cluster nodes and configures Raft peers.
-func performAutoDiscovery(config *config.Config, discoveryService *proxmox.DiscoveryService) error {
+// performAutoDiscoveryWithPeers discovers cluster nodes and returns Raft peers.
+func performAutoDiscoveryWithPeers(config *config.Config, discoveryService *proxmox.DiscoveryService) ([]proxmox.RaftPeer, error) {
 	fmt.Println("Auto-discovering Raft parameters from Proxmox cluster...")
 
 	// Discover cluster nodes
 	nodes, err := discoveryService.DiscoverClusterNodes()
 	if err != nil {
-		return fmt.Errorf("failed to discover cluster nodes: %w", err)
+		return nil, fmt.Errorf("failed to discover cluster nodes: %w", err)
 	}
 	fmt.Printf("Discovered %d cluster nodes: %v\n", len(nodes), func() []string {
 		names := make([]string, len(nodes))
@@ -373,20 +422,31 @@ func performAutoDiscovery(config *config.Config, discoveryService *proxmox.Disco
 	// Get current node ID
 	currentNodeID, err := discoveryService.GetCurrentNodeID()
 	if err != nil {
-		return fmt.Errorf("failed to get current node ID: %w", err)
+		return nil, fmt.Errorf("failed to get current node ID: %w", err)
 	}
 	config.Raft.NodeID = currentNodeID
 	fmt.Printf("Current node ID: %s\n", config.Raft.NodeID)
 
 	// Get Raft peers
-	peers, err := discoveryService.GetRaftPeers(config.Raft.NodeID)
+	raftPeers, err := discoveryService.GetRaftPeers(config.Raft.NodeID)
 	if err != nil {
-		return fmt.Errorf("failed to get Raft peers: %w", err)
+		return nil, fmt.Errorf("failed to get Raft peers: %w", err)
 	}
-	config.Raft.Peers = peers
-	fmt.Printf("Raft peers configured: %v\n", config.Raft.Peers)
 
-	return nil
+	// Convert to string slice for compatibility
+	var peerAddresses []string
+	for _, peer := range raftPeers {
+		peerAddresses = append(peerAddresses, peer.Address)
+	}
+	config.Raft.Peers = peerAddresses
+
+	fmt.Printf("Raft peers configured: %v\n", config.Raft.Peers)
+	fmt.Printf("DEBUG: Peers length: %d\n", len(raftPeers))
+	for i, peer := range raftPeers {
+		fmt.Printf("DEBUG: Peer %d: NodeID=%s, Address=%s\n", i, peer.NodeID, peer.Address)
+	}
+
+	return raftPeers, nil
 }
 
 // setupBalancer creates the appropriate balancer instance.

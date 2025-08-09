@@ -155,6 +155,30 @@ func Start(configPath string) error {
 
 // StartWithBalancerType starts the load balancer daemon with a specific balancer type.
 func StartWithBalancerType(configPath, balancerType string) error {
+	// Load config to check if Raft is enabled
+	var cfg *config.Config
+	var err error
+
+	if configPath == "" {
+		cfg, err = config.LoadDefault()
+	} else {
+		cfg, err = config.Load(configPath)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// If Raft is enabled, use distributed app
+	if cfg.Raft.Enabled {
+		fmt.Println("Raft enabled - starting in distributed mode...")
+		distributedApp, err := NewDistributedApp(configPath)
+		if err != nil {
+			return fmt.Errorf("failed to create distributed app: %w", err)
+		}
+		return distributedApp.Start()
+	}
+
+	// Otherwise use single-node app
 	app, err := NewApp(configPath)
 	if err != nil {
 		return err
@@ -575,23 +599,23 @@ func initializeApp(configPath string) (*App, error) {
 
 // displaySingleNodeStatus shows status for single-node deployments.
 func displaySingleNodeStatus() {
-		fmt.Println("=== Raft Status ===")
-		fmt.Println("Raft is not enabled in configuration")
-		fmt.Println("This is a single-node deployment")
+	fmt.Println("=== Raft Status ===")
+	fmt.Println("Raft is not enabled in configuration")
+	fmt.Println("This is a single-node deployment")
 }
 
 // displayServiceNotFound shows message when GoProxLB service is not running.
 func displayServiceNotFound(configPath string) {
-		fmt.Println("=== Raft Status ===")
-		fmt.Println("⚠️  No running GoProxLB service found")
-		fmt.Println("Please start GoProxLB in distributed mode first:")
-		if configPath == "" {
-			fmt.Println("  goproxlb --config config.yaml")
-		} else {
-			fmt.Printf("  goproxlb --config %s\n", configPath)
-		}
-		fmt.Println()
-		fmt.Println("The service will expose status at:")
+	fmt.Println("=== Raft Status ===")
+	fmt.Println("⚠️  No running GoProxLB service found")
+	fmt.Println("Please start GoProxLB in distributed mode first:")
+	if configPath == "" {
+		fmt.Println("  goproxlb --config config.yaml")
+	} else {
+		fmt.Printf("  goproxlb --config %s\n", configPath)
+	}
+	fmt.Println()
+	fmt.Println("The service will expose status at:")
 	fmt.Printf("  %s\n", "/var/lib/goproxlb/status.sock")
 }
 
@@ -651,29 +675,29 @@ func displayClusterHealth(status map[string]interface{}) {
 		return
 	}
 
-		peerStrings := make([]string, len(peers))
-		for i, peer := range peers {
-			peerStrings[i] = peer.(string)
-		}
-		fmt.Printf("Peers (%d): %v\n", len(peerStrings), peerStrings)
+	peerStrings := make([]string, len(peers))
+	for i, peer := range peers {
+		peerStrings[i] = peer.(string)
+	}
+	fmt.Printf("Peers (%d): %v\n", len(peerStrings), peerStrings)
 
-		fmt.Println("\n=== Cluster Health ===")
-		if len(peerStrings) == 0 {
-			fmt.Println("⚠️  No peers configured - single node cluster")
+	fmt.Println("\n=== Cluster Health ===")
+	if len(peerStrings) == 0 {
+		fmt.Println("⚠️  No peers configured - single node cluster")
 		return
 	}
 
-			quorumSize := (len(peerStrings)+1)/2 + 1 // +1 for current node
+	quorumSize := (len(peerStrings)+1)/2 + 1 // +1 for current node
 	totalNodes := len(peerStrings) + 1
-			fmt.Printf("Quorum size: %d nodes\n", quorumSize)
+	fmt.Printf("Quorum size: %d nodes\n", quorumSize)
 	fmt.Printf("Total nodes: %d nodes\n", totalNodes)
 
 	if totalNodes >= quorumSize {
-				fmt.Println("✅ Cluster has quorum")
-			} else {
-				fmt.Println("❌ Cluster does not have quorum")
-		}
+		fmt.Println("✅ Cluster has quorum")
+	} else {
+		fmt.Println("❌ Cluster does not have quorum")
 	}
+}
 
 // displayAutoDiscoveryStatus shows auto-discovery configuration status.
 func displayAutoDiscoveryStatus(app *App) {
@@ -685,7 +709,7 @@ func displayAutoDiscoveryStatus(app *App) {
 		fmt.Println("❌ Auto-discovery disabled")
 		fmt.Println("Peers must be manually configured")
 	}
-	}
+}
 
 // displayRaftConfiguration shows Raft configuration details.
 func displayRaftConfiguration(app *App) {
@@ -699,7 +723,7 @@ func displayRaftConfiguration(app *App) {
 func InstallService(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
-	
+
 	// Check if we're running as root (required for systemd installation)
 	if os.Geteuid() != 0 {
 		fmt.Println("⚠️  Warning: This command requires root privileges to install systemd services.")
@@ -708,7 +732,7 @@ func InstallService(user, group, configPath string, enableService bool) error {
 		fmt.Println()
 		return installServiceDryRun(user, group, configPath, enableService)
 	}
-	
+
 	// Determine executable path
 	execPath := os.Args[0]
 	if !filepath.IsAbs(execPath) {
@@ -717,7 +741,7 @@ func InstallService(user, group, configPath string, enableService bool) error {
 			execPath = absPath
 		}
 	}
-	
+
 	// Build service command
 	var serviceExec string
 	if configPath != "" {
@@ -765,7 +789,7 @@ WantedBy=multi-user.target
 		"/etc/goproxlb",
 		"/var/log/goproxlb",
 	}
-	
+
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
@@ -795,19 +819,19 @@ WantedBy=multi-user.target
 		if err := exec.Command("systemctl", "enable", serviceName).Run(); err != nil {
 			return fmt.Errorf("failed to enable service: %w", err)
 		}
-		
+
 		// Start service
 		if err := exec.Command("systemctl", "start", serviceName).Run(); err != nil {
 			return fmt.Errorf("failed to start service: %w", err)
 		}
-		
+
 		fmt.Printf("✅ Service enabled and started successfully.\n")
 	}
 
 	fmt.Printf("✅ Service file %s created successfully.\n", serviceFilePath)
 	fmt.Printf("✅ User '%s' and group '%s' created.\n", user, group)
 	fmt.Printf("✅ Directories created with proper permissions.\n")
-	
+
 	if !enableService {
 		fmt.Printf("\n📋 Next steps:\n")
 		fmt.Printf("1. Enable service: sudo systemctl enable %s\n", serviceName)
@@ -828,7 +852,7 @@ WantedBy=multi-user.target
 func installServiceDryRun(user, group, configPath string, enableService bool) error {
 	serviceName := "goproxlb"
 	serviceDescription := "GoProxLB Load Balancer"
-	
+
 	// Determine executable path
 	execPath := os.Args[0]
 	if !filepath.IsAbs(execPath) {
@@ -837,7 +861,7 @@ func installServiceDryRun(user, group, configPath string, enableService bool) er
 			execPath = absPath
 		}
 	}
-	
+
 	// Build service command
 	var serviceExec string
 	if configPath != "" {

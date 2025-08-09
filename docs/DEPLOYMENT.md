@@ -6,27 +6,59 @@ This guide covers deployment scenarios from the simplest to the most complex use
 
 All deployment methods start with downloading the appropriate binary:
 
+### Option A: Latest Version (Recommended)
+
 ```bash
+# Get the latest version number
+LATEST_VERSION=$(curl -s https://api.github.com/repos/cblomart/GoProxLB/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+
 # AMD64 (most common)
-curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-linux-amd64
-curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-linux-amd64.sha256
-sha256sum -c goproxlb-linux-amd64.sha256
+curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-${LATEST_VERSION}-linux-amd64.tar.gz
+curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/checksums.txt
+tar -xzf goproxlb-${LATEST_VERSION}-linux-amd64.tar.gz
+sha256sum --ignore-missing -c checksums.txt
 chmod +x goproxlb-linux-amd64
 sudo mv goproxlb-linux-amd64 /usr/local/bin/goproxlb
 
 # ARM64 (Raspberry Pi, modern ARM servers)
-curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-linux-arm64
-curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-linux-arm64.sha256
-sha256sum -c goproxlb-linux-arm64.sha256
+curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-${LATEST_VERSION}-linux-arm64.tar.gz
+curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/checksums.txt
+tar -xzf goproxlb-${LATEST_VERSION}-linux-arm64.tar.gz
+sha256sum --ignore-missing -c checksums.txt
 chmod +x goproxlb-linux-arm64
 sudo mv goproxlb-linux-arm64 /usr/local/bin/goproxlb
 
 # ARM (older ARM devices)
-curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-linux-arm
-curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-linux-arm.sha256
-sha256sum -c goproxlb-linux-arm.sha256
+curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/goproxlb-${LATEST_VERSION}-linux-arm.tar.gz
+curl -LO https://github.com/cblomart/GoProxLB/releases/latest/download/checksums.txt
+tar -xzf goproxlb-${LATEST_VERSION}-linux-arm.tar.gz
+sha256sum --ignore-missing -c checksums.txt
 chmod +x goproxlb-linux-arm
 sudo mv goproxlb-linux-arm /usr/local/bin/goproxlb
+```
+
+### Option B: Specific Version (Manual)
+
+If you prefer to download a specific version (e.g., v1.0.1):
+
+```bash
+# Replace v1.0.1 with your desired version
+VERSION="v1.0.1"
+
+# AMD64
+curl -LO https://github.com/cblomart/GoProxLB/releases/download/${VERSION}/goproxlb-${VERSION}-linux-amd64.tar.gz
+curl -LO https://github.com/cblomart/GoProxLB/releases/download/${VERSION}/checksums.txt
+tar -xzf goproxlb-${VERSION}-linux-amd64.tar.gz
+sha256sum --ignore-missing -c checksums.txt
+chmod +x goproxlb-linux-amd64
+sudo mv goproxlb-linux-amd64 /usr/local/bin/goproxlb
+
+# ARM64 or ARM: Replace amd64 with arm64 or arm in the filename
+```
+
+**Note**: After installation, you can clean up the downloaded files:
+```bash
+rm -f goproxlb-*.tar.gz checksums.txt goproxlb-linux-*.sha256
 ```
 
 ---

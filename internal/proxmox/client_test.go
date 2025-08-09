@@ -175,7 +175,7 @@ func setupMockServer() (*httptest.Server, *config.ProxmoxConfig) {
 					"maxcpu":  8,
 					"mem":     4294967296,
 					"maxmem":  8589934592,
-					"loadavg": []float64{1.0, 1.0, 1.0},
+					"loadavg": []string{"1.0", "1.0", "1.0"},
 				},
 			})
 			return
@@ -190,7 +190,7 @@ func setupMockServer() (*httptest.Server, *config.ProxmoxConfig) {
 					"maxcpu":  8,
 					"mem":     2147483648,
 					"maxmem":  8589934592,
-					"loadavg": []float64{0.5, 0.5, 0.5},
+					"loadavg": []string{"0.5", "0.5", "0.5"},
 				},
 			})
 			return

@@ -75,20 +75,16 @@ jobs:
         sha256sum goproxlb-linux-arm64 > goproxlb-linux-arm64.sha256
         cat *.sha256 > checksums.txt
 
-    - name: Create release archive
-      run: |
-        cd build
-        tar -czf goproxlb-${{ env.VERSION }}-linux-amd64.tar.gz goproxlb-linux-amd64 goproxlb-linux-amd64.sha256
-        tar -czf goproxlb-${{ env.VERSION }}-linux-arm.tar.gz goproxlb-linux-arm goproxlb-linux-arm.sha256
-        tar -czf goproxlb-${{ env.VERSION }}-linux-arm64.tar.gz goproxlb-linux-arm64 goproxlb-linux-arm64.sha256
-
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          build/goproxlb-${{ env.VERSION }}-linux-amd64.tar.gz
-          build/goproxlb-${{ env.VERSION }}-linux-arm.tar.gz
-          build/goproxlb-${{ env.VERSION }}-linux-arm64.tar.gz
+          build/goproxlb-linux-amd64
+          build/goproxlb-linux-amd64.sha256
+          build/goproxlb-linux-arm
+          build/goproxlb-linux-arm.sha256
+          build/goproxlb-linux-arm64
+          build/goproxlb-linux-arm64.sha256
           build/checksums.txt
         draft: false
         prerelease: false

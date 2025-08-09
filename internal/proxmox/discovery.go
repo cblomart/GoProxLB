@@ -3,6 +3,7 @@ package proxmox
 import (
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"time"
 )
@@ -74,14 +75,20 @@ func (d *DiscoveryService) DiscoverClusterNodes() ([]ClusterNode, error) {
 	return nodes, nil
 }
 
+// RaftPeer represents a Raft peer with both ID and address.
+type RaftPeer struct {
+	NodeID  string
+	Address string
+}
+
 // GetRaftPeers returns the list of peers for Raft configuration.
-func (d *DiscoveryService) GetRaftPeers(currentNodeID string) ([]string, error) {
+func (d *DiscoveryService) GetRaftPeers(currentNodeID string) ([]RaftPeer, error) {
 	nodes, err := d.DiscoverClusterNodes()
 	if err != nil {
 		return nil, err
 	}
 
-	var peers []string
+	var peers []RaftPeer
 
 	for _, node := range nodes {
 		// Skip the current node
@@ -89,10 +96,13 @@ func (d *DiscoveryService) GetRaftPeers(currentNodeID string) ([]string, error) 
 			continue
 		}
 
-		// Only include nodes that are online and have GoProxLB
-		if node.Online && node.HasGoProxLB && node.IP != "" {
-			peerAddress := fmt.Sprintf("%s:%d", node.IP, d.port)
-			peers = append(peers, peerAddress)
+		// Include all online nodes with valid IPs (assume they will run GoProxLB)
+		if node.Online && node.IP != "" {
+			peer := RaftPeer{
+				NodeID:  node.NodeID,
+				Address: fmt.Sprintf("%s:%d", node.IP, d.port),
+			}
+			peers = append(peers, peer)
 		}
 	}
 
@@ -108,12 +118,26 @@ func (d *DiscoveryService) GetCurrentNodeID() (string, error) {
 		return "", fmt.Errorf("failed to get nodes: %w", err)
 	}
 
-	// Find the node that matches our connection
-	// For now, we'll use a simple heuristic: the first online node
-	// In a real implementation, you might want to use the node's hostname or IP
+	// Get the local hostname to match against node names
+	hostname, err := d.getLocalHostname()
+	if err != nil {
+		return "", fmt.Errorf("failed to get local hostname: %w", err)
+	}
+
+	// Find the node that matches our hostname
+	for i := range proxmoxNodes {
+		node := &proxmoxNodes[i]
+		if node.Status == nodeStatusOnline && d.hostnameMatches(node.Name, hostname) {
+			return node.Name, nil
+		}
+	}
+
+	// Fallback: if hostname matching fails, try the first online node
+	// This maintains backward compatibility but logs a warning
 	for i := range proxmoxNodes {
 		node := &proxmoxNodes[i]
 		if node.Status == nodeStatusOnline {
+			fmt.Printf("Warning: Could not match hostname '%s' to any node, using first online node '%s'\n", hostname, node.Name)
 			return node.Name, nil
 		}
 	}
@@ -192,6 +216,37 @@ func (d *DiscoveryService) GetNodeAddress(nodeID string) (string, error) {
 	}
 
 	return "", fmt.Errorf("node %s not found or no IP available", nodeID)
+}
+
+// getLocalHostname gets the local hostname for node identification.
+func (d *DiscoveryService) getLocalHostname() (string, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "", fmt.Errorf("failed to get hostname: %w", err)
+	}
+
+	// Remove domain suffix if present (e.g., "proxmox01.lab" -> "proxmox01")
+	if idx := strings.Index(hostname, "."); idx >= 0 {
+		hostname = hostname[:idx]
+	}
+
+	return hostname, nil
+}
+
+// hostnameMatches checks if a node name matches the local hostname.
+func (d *DiscoveryService) hostnameMatches(nodeName, hostname string) bool {
+	// Direct match
+	if nodeName == hostname {
+		return true
+	}
+
+	// Strip domain from node name and try again
+	nodeBaseName := nodeName
+	if idx := strings.Index(nodeName, "."); idx >= 0 {
+		nodeBaseName = nodeName[:idx]
+	}
+
+	return nodeBaseName == hostname
 }
 
 // ValidateClusterTopology validates the cluster topology for Raft.

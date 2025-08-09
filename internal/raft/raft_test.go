@@ -288,8 +288,11 @@ func TestRaftNodeGetState(t *testing.T) {
 func TestRaftNodeGetPeers(t *testing.T) {
 	tempDir := t.TempDir()
 
-	peers := []string{"127.0.0.1:8089", "127.0.0.1:8090"}
-	node, err := NewRaftNode("node1", "127.0.0.1:8088", tempDir, peers)
+	peers := []RaftPeer{
+		{NodeID: "node2", Address: "127.0.0.1:8089"},
+		{NodeID: "node3", Address: "127.0.0.1:8090"},
+	}
+	node, err := NewRaftNodeWithPeers("node1", "127.0.0.1:8088", tempDir, peers)
 	if err != nil {
 		t.Fatalf("Failed to create node: %v", err)
 	}
@@ -303,7 +306,7 @@ func TestRaftNodeGetPeers(t *testing.T) {
 
 	for i, peer := range peers {
 		if retrievedPeers[i] != peer {
-			t.Errorf("Expected peer %s, got %s", peer, retrievedPeers[i])
+			t.Errorf("Expected peer %v, got %v", peer, retrievedPeers[i])
 		}
 	}
 }

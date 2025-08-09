@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -101,13 +102,13 @@ func (c *Client) GetNodes() ([]models.Node, error) {
 
 	var nodesResp struct {
 		Data []struct {
-			Node   string `json:"node"`
-			Status string `json:"status"`
-			CPU    int    `json:"cpu"`
-			Level  string `json:"level"`
-			MaxCPU int    `json:"maxcpu"`
-			MaxMem int64  `json:"maxmem"`
-			Mem    int64  `json:"mem"`
+			Node   string  `json:"node"`
+			Status string  `json:"status"`
+			CPU    float64 `json:"cpu"`
+			Level  string  `json:"level"`
+			MaxCPU int     `json:"maxcpu"`
+			MaxMem int64   `json:"maxmem"`
+			Mem    int64   `json:"mem"`
 		} `json:"data"`
 	}
 
@@ -143,7 +144,7 @@ func (c *Client) getNodeDetails(nodeName string) (*models.Node, error) {
 				Total int64 `json:"total"`
 				Used  int64 `json:"used"`
 			} `json:"memory"`
-			LoadAvg []float64 `json:"loadavg"`
+			LoadAvg []string `json:"loadavg"`
 		} `json:"data"`
 	}
 
@@ -200,10 +201,17 @@ func (c *Client) getNodeDetails(nodeName string) (*models.Node, error) {
 		Name:   nodeName,
 		Status: "online", // Assume online if we can get status
 		CPU: models.CPUInfo{
-			Usage:   float32(statusData.Data.CPU * 100),
-			Cores:   cores,
-			Model:   model,
-			LoadAvg: float32(statusData.Data.LoadAvg[0]),
+			Usage: float32(statusData.Data.CPU * 100),
+			Cores: cores,
+			Model: model,
+			LoadAvg: func() float32 {
+				if len(statusData.Data.LoadAvg) > 0 {
+					if val, err := strconv.ParseFloat(statusData.Data.LoadAvg[0], 32); err == nil {
+						return float32(val)
+					}
+				}
+				return 0.0
+			}(),
 		},
 		Memory: models.MemoryInfo{
 			Total:     statusData.Data.Memory.Total,

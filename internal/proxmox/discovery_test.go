@@ -173,7 +173,7 @@ func TestDiscoveryServiceGetRaftPeers(t *testing.T) {
 
 	// Verify no peers contain the current node
 	for _, peer := range peers {
-		if peer == "192.168.1.10:7946" {
+		if peer.Address == "192.168.1.10:7946" {
 			t.Errorf("Peer list should not include current node")
 		}
 	}
