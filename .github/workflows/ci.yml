@@ -104,10 +104,9 @@ jobs:
     - name: Check for security vulnerabilities
       run: |
         if [ -f results.sarif ]; then
-          # Count non-suppressed security issues (exclude nolinted issues)
-          # Security issues are acceptable if they are properly nolinted in code
           echo "Security scan completed. Results uploaded to GitHub Security tab."
-          echo "✅ Security scan passed (nolinted issues are acceptable)."
+          echo "SARIF file contents (first 50 lines):"
+          head -50 results.sarif || true
         else
           echo "❌ SARIF file not found. Security scan may have failed."
           exit 1
@@ -135,47 +134,38 @@ jobs:
         go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
         go install honnef.co/go/tools/cmd/staticcheck@latest
         go install github.com/kisielk/errcheck@latest
-        echo "Tools installed successfully"
 
     - name: Check cyclomatic complexity
       run: |
-        echo "Checking cyclomatic complexity..."
-        # Check for new functions with high complexity (>30 for truly problematic cases)
-        if ~/go/bin/gocyclo -over 30 ./internal/; then
-          echo "❌ Functions with extremely high cyclomatic complexity found (>30)."
-          echo "These functions must be refactored or have justified //nolint:gocyclo comments."
-          exit 1
-        fi
-        echo "✅ Complexity check passed (no functions >30 complexity)"
+        echo "Checking cyclomatic complexity (functions >30)..."
+        ~/go/bin/gocyclo -over 30 ./internal/
 
     - name: Run staticcheck
       run: |
-        echo "Running staticcheck..."
-        # Exclude SA5011 false positives (nil checks before t.Fatal())
+        echo "Running staticcheck (excluding SA5011)..."
         staticcheck -checks "all,-SA5011" ./...
-        echo "✅ Staticcheck passed"
 
     - name: Check for ineffectual assignments
       run: echo "Ineffassign check skipped - tool not available in Go 1.22"
 
     - name: Check for unchecked errors (critical paths only)
       run: |
-        echo "Checking for unchecked errors in critical paths..."
-        # Focus on non-defer error handling - defer Close() is generally safe to ignore
-        errcheck -ignoretests -blank ./... | grep -v "defer.*Close" | grep -v "defer.*Flush" || true
-        # Count critical unchecked errors (excluding defer statements)
+        echo "Checking for unchecked errors (excluding defer Close/Flush)..."
+        # Show all errcheck output, then fail only if critical errors found
+        errcheck -ignoretests -blank ./...
+        # Check for critical errors (non-defer statements)
         ERRORS=$(errcheck -ignoretests -blank ./... | grep -v "defer.*Close" | grep -v "defer.*Flush" | wc -l)
         if [ $ERRORS -gt 0 ]; then
-          echo "❌ $ERRORS unchecked errors found in critical paths."
-          echo "Please handle these errors or add explicit error suppression (_ = err)."
+          echo "Critical unchecked errors found (excluding defer statements):"
           errcheck -ignoretests -blank ./... | grep -v "defer.*Close" | grep -v "defer.*Flush"
           exit 1
         fi
-        echo "✅ Error check passed (no critical unchecked errors)"
 
     - name: Check for unused code
       run: |
+        echo "Running go vet..."
         go vet ./...
+        echo "Running go vet with composites disabled..."
         go vet -composites=false ./...
 
   build:
