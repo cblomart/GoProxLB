@@ -745,9 +745,9 @@ func InstallService(user, group, configPath string, enableService bool) error {
 	// Build service command
 	var serviceExec string
 	if configPath != "" {
-		serviceExec = fmt.Sprintf("%s --config %s", execPath, configPath)
+		serviceExec = fmt.Sprintf("%s start --config %s", execPath, configPath)
 	} else {
-		serviceExec = execPath
+		serviceExec = fmt.Sprintf("%s start", execPath)
 	}
 
 	// Create the service file content
@@ -865,9 +865,9 @@ func installServiceDryRun(user, group, configPath string, enableService bool) er
 	// Build service command
 	var serviceExec string
 	if configPath != "" {
-		serviceExec = fmt.Sprintf("%s --config %s", execPath, configPath)
+		serviceExec = fmt.Sprintf("%s start --config %s", execPath, configPath)
 	} else {
-		serviceExec = execPath
+		serviceExec = fmt.Sprintf("%s start", execPath)
 	}
 
 	// Create the service file content

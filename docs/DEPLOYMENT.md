@@ -128,7 +128,7 @@ sudo goproxlb start --config /etc/goproxlb/config.yaml
 
 ```bash
 # Install service
-sudo goproxlb install-service --config /etc/goproxlb/config.yaml
+sudo goproxlb install --config /etc/goproxlb/config.yaml
 
 # Enable and start
 sudo systemctl enable goproxlb
