@@ -20,20 +20,22 @@ COPY . .
 ARG VERSION=dev
 ARG BUILD_TIME=unknown
 
-# Install UPX for binary compression
-RUN wget -q https://github.com/upx/upx/releases/download/v4.2.1/upx-4.2.1-amd64_linux.tar.xz && \
-    tar -xf upx-4.2.1-amd64_linux.tar.xz && \
-    mv upx-4.2.1-amd64_linux/upx /usr/local/bin/ && \
-    rm -rf upx-4.2.1-amd64_linux*
-
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -a -installsuffix cgo \
     -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME}" \
     -o goproxlb ./cmd/main.go
 
-# Compress binary with UPX
-RUN upx --best --lzma goproxlb
+# Install and use UPX for binary compression (AMD64 only for simplicity)
+RUN if [ "$(uname -m)" = "x86_64" ]; then \
+        wget -q https://github.com/upx/upx/releases/download/v4.2.1/upx-4.2.1-amd64_linux.tar.xz && \
+        tar -xf upx-4.2.1-amd64_linux.tar.xz && \
+        mv upx-4.2.1-amd64_linux/upx /usr/local/bin/ && \
+        rm -rf upx-4.2.1-amd64_linux* && \
+        upx --best --lzma goproxlb; \
+    else \
+        echo "Skipping UPX compression for $(uname -m) architecture"; \
+    fi
 
 # Final stage
 FROM alpine:latest
