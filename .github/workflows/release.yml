@@ -169,6 +169,18 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Wait for image availability
+      run: |
+        echo "Waiting for Docker image to be available..."
+        for i in {1..30}; do
+          if docker manifest inspect ghcr.io/cblomart/goproxlb:${{ env.VERSION }} > /dev/null 2>&1; then
+            echo "Image is available!"
+            break
+          fi
+          echo "Attempt $i/30: Image not yet available, waiting 10 seconds..."
+          sleep 10
+        done
+
     - name: Tag as latest
       run: |
         docker pull ghcr.io/cblomart/goproxlb:${{ env.VERSION }}
@@ -189,6 +201,18 @@ jobs:
         VERSION=${GITHUB_REF#refs/tags/}
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+    - name: Wait for image availability
+      run: |
+        echo "Waiting for Docker image to be available for security scanning..."
+        for i in {1..30}; do
+          if docker manifest inspect ghcr.io/cblomart/goproxlb:${{ env.VERSION }} > /dev/null 2>&1; then
+            echo "Image is available for scanning!"
+            break
+          fi
+          echo "Attempt $i/30: Image not yet available, waiting 10 seconds..."
+          sleep 10
+        done
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
