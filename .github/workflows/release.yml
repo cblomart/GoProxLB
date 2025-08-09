@@ -44,11 +44,11 @@ jobs:
         # Linux ARM64
         GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.Version=${{ env.VERSION }}" -o build/goproxlb-linux-arm64 cmd/main.go
 
-    - name: Strip binaries
+    - name: Verify binaries
       run: |
-        strip build/goproxlb-linux-amd64
-        strip build/goproxlb-linux-arm
-        strip build/goproxlb-linux-arm64
+        echo "Built binaries:"
+        ls -lh build/
+        file build/goproxlb-*
 
     - name: Install UPX
       run: |
